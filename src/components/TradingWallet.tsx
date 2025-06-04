@@ -5,405 +5,475 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertTriangle, TrendingUp, Target, Wallet } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { TrendingUp, AlertTriangle, Target, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
-interface TradingWalletProps {
-  currentUser: string;
-  portfolioData: any;
-}
-
-interface Trade {
+interface TradingPosition {
   id: string;
   token: string;
-  amount: number;
   entryPrice: number;
-  currentPrice: number;
-  quantity: number;
-  stopLoss: number;
+  amount: number;
   takeProfit: number;
-  profitPercentage: number;
-  status: 'active' | 'tp_hit' | 'sl_hit';
-  createdAt: string;
-  isFastRecovery: boolean;
+  stopLoss: number;
+  currentPrice: number;
+  allocationType: 'btc' | 'eth' | 'sol' | 'fast-recovery' | 'other';
+  status: 'active' | 'tp-hit' | 'sl-hit';
+  dateOpened: string;
 }
 
-interface InvestmentWalletPosition {
+interface InvestmentPosition {
   id: string;
   token: string;
   amount: number;
   entryPrice: number;
   currentPrice: number;
-  quantity: number;
-  investmentTakeProfit: number;
-  profitPercentage: number;
-  status: 'active' | 'tp_hit';
-  createdAt: string;
-  originalTradeId: string;
+  investmentTP: number;
+  status: 'active' | 'tp-hit';
+  dateCreated: string;
+  originTradingId: string;
 }
 
-const TradingWallet: React.FC<TradingWalletProps> = ({ currentUser, portfolioData }) => {
-  const [trades, setTrades] = useState<Trade[]>([]);
-  const [investmentPositions, setInvestmentPositions] = useState<InvestmentWalletPosition[]>([]);
-  const [newTrade, setNewTrade] = useState({
+const TradingWallet = ({ portfolioData, currentUser }: { portfolioData: any, currentUser: string }) => {
+  const [tradingPositions, setTradingPositions] = useState<TradingPosition[]>([]);
+  const [investmentPositions, setInvestmentPositions] = useState<InvestmentPosition[]>([]);
+  const [walletBalance, setWalletBalance] = useState<number>(10000); // Starting balance
+  const [newPosition, setNewPosition] = useState({
     token: '',
-    amount: 0,
-    entryPrice: 0,
-    stopLoss: 0,
-    takeProfit: 0,
-    isFastRecovery: false
+    entryPrice: '',
+    takeProfit: '',
+    stopLoss: '',
+    allocationType: 'other' as 'btc' | 'eth' | 'sol' | 'fast-recovery' | 'other'
   });
 
-  // Mock current prices
-  const mockPrices: { [key: string]: number } = {
-    BTC: 43500,
-    ETH: 2650,
-    SOL: 98,
-    CORE: 1.25,
-    ADA: 0.52,
-    DOT: 7.85,
-    LINK: 15.40,
-    UNI: 6.80,
-    AVAX: 38.50,
-    MATIC: 0.85
+  const getAllocationPercentage = (type: string) => {
+    switch (type) {
+      case 'btc': return 20;
+      case 'eth':
+      case 'sol': return 10;
+      case 'fast-recovery': return 8;
+      default: return 5;
+    }
   };
 
   useEffect(() => {
-    loadTradingData();
-    const interval = setInterval(updatePricesAndCheckAlerts, 5000);
-    return () => clearInterval(interval);
+    if (currentUser) {
+      const savedTradingPositions = localStorage.getItem(`trading_positions_${currentUser}`);
+      const savedInvestmentPositions = localStorage.getItem(`investment_positions_${currentUser}`);
+      const savedBalance = localStorage.getItem(`trading_balance_${currentUser}`);
+      
+      if (savedTradingPositions) {
+        setTradingPositions(JSON.parse(savedTradingPositions));
+      }
+      if (savedInvestmentPositions) {
+        setInvestmentPositions(JSON.parse(savedInvestmentPositions));
+      }
+      if (savedBalance) {
+        setWalletBalance(parseFloat(savedBalance));
+      }
+    }
   }, [currentUser]);
 
-  const loadTradingData = () => {
-    const savedTrades = localStorage.getItem(`trading_trades_${currentUser}`);
-    const savedInvestments = localStorage.getItem(`investment_positions_${currentUser}`);
-    
-    if (savedTrades) {
-      setTrades(JSON.parse(savedTrades));
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem(`trading_positions_${currentUser}`, JSON.stringify(tradingPositions));
+      localStorage.setItem(`investment_positions_${currentUser}`, JSON.stringify(investmentPositions));
+      localStorage.setItem(`trading_balance_${currentUser}`, walletBalance.toString());
     }
-    if (savedInvestments) {
-      setInvestmentPositions(JSON.parse(savedInvestments));
+  }, [tradingPositions, investmentPositions, walletBalance, currentUser]);
+
+  const openPosition = () => {
+    if (!newPosition.token || !newPosition.entryPrice || !newPosition.takeProfit || !newPosition.stopLoss) {
+      toast.error("Please fill in all fields");
+      return;
     }
-  };
 
-  const saveTradingData = (newTrades: Trade[], newInvestments: InvestmentWalletPosition[]) => {
-    localStorage.setItem(`trading_trades_${currentUser}`, JSON.stringify(newTrades));
-    localStorage.setItem(`investment_positions_${currentUser}`, JSON.stringify(newInvestments));
-  };
+    const entryPrice = parseFloat(newPosition.entryPrice);
+    const allocPercentage = getAllocationPercentage(newPosition.allocationType);
+    const positionSize = (walletBalance * allocPercentage) / 100;
+    const amount = positionSize / entryPrice;
 
-  const calculateTradingPercentage = (token: string, isFastRecovery: boolean): number => {
-    if (token === 'BTC') return 20;
-    if (token === 'ETH' || token === 'SOL') return 10;
-    if (isFastRecovery) return 8;
-    return 5;
-  };
+    if (positionSize > walletBalance) {
+      toast.error("Insufficient balance for this position");
+      return;
+    }
 
-  const getTotalWalletValue = (): number => {
-    if (!portfolioData?.allocation) return 0;
-    return Object.values(portfolioData.allocation).reduce((sum: number, details: any) => sum + (details?.amount || 0), 0);
-  };
-
-  const updatePricesAndCheckAlerts = () => {
-    const updatedTrades = trades.map(trade => {
-      const currentPrice = mockPrices[trade.token] || trade.currentPrice;
-      const profitPercentage = ((currentPrice - trade.entryPrice) / trade.entryPrice) * 100;
-      
-      // Check for TP/SL hits
-      if (trade.status === 'active') {
-        if (currentPrice >= trade.takeProfit) {
-          toast.success(`🎉 Take Profit hit for ${trade.token}! Moving 70% to investment wallet.`);
-          handleTakeProfitHit(trade, currentPrice);
-          return { ...trade, status: 'tp_hit' as const, currentPrice, profitPercentage };
-        } else if (currentPrice <= trade.stopLoss) {
-          toast.error(`🛑 Stop Loss hit for ${trade.token}!`);
-          return { ...trade, status: 'sl_hit' as const, currentPrice, profitPercentage };
-        }
-      }
-      
-      return { ...trade, currentPrice, profitPercentage };
-    });
-
-    const updatedInvestments = investmentPositions.map(position => {
-      const currentPrice = mockPrices[position.token] || position.currentPrice;
-      const profitPercentage = ((currentPrice - position.entryPrice) / position.entryPrice) * 100;
-      
-      if (position.status === 'active' && currentPrice >= position.investmentTakeProfit) {
-        toast.success(`🚀 Investment Take Profit hit for ${position.token}!`);
-        return { ...position, status: 'tp_hit' as const, currentPrice, profitPercentage };
-      }
-      
-      return { ...position, currentPrice, profitPercentage };
-    });
-
-    setTrades(updatedTrades);
-    setInvestmentPositions(updatedInvestments);
-    saveTradingData(updatedTrades, updatedInvestments);
-  };
-
-  const handleTakeProfitHit = (trade: Trade, currentPrice: number) => {
-    const totalValue = trade.quantity * currentPrice;
-    const profit = totalValue - trade.amount;
-    const tokensToInvestment = (profit * 0.7) / currentPrice;
-    
-    const investmentPosition: InvestmentWalletPosition = {
-      id: `inv_${Date.now()}`,
-      token: trade.token,
-      amount: profit * 0.7,
-      entryPrice: currentPrice,
-      currentPrice: currentPrice,
-      quantity: tokensToInvestment,
-      investmentTakeProfit: currentPrice * 2, // 100% profit target
-      profitPercentage: 0,
+    const position: TradingPosition = {
+      id: Date.now().toString(),
+      token: newPosition.token.toUpperCase(),
+      entryPrice: entryPrice,
+      amount: amount,
+      takeProfit: parseFloat(newPosition.takeProfit),
+      stopLoss: parseFloat(newPosition.stopLoss),
+      currentPrice: entryPrice,
+      allocationType: newPosition.allocationType,
       status: 'active',
-      createdAt: new Date().toISOString(),
-      originalTradeId: trade.id
+      dateOpened: new Date().toISOString()
+    };
+
+    setTradingPositions([...tradingPositions, position]);
+    setWalletBalance(walletBalance - positionSize);
+    
+    setNewPosition({
+      token: '',
+      entryPrice: '',
+      takeProfit: '',
+      stopLoss: '',
+      allocationType: 'other'
+    });
+
+    toast.success(`Position opened: ${position.token} with ${allocPercentage}% allocation`);
+  };
+
+  const updatePositionPrice = (id: string, newPrice: string) => {
+    const price = parseFloat(newPrice);
+    if (isNaN(price)) return;
+
+    setTradingPositions(tradingPositions.map(pos => {
+      if (pos.id === id && pos.status === 'active') {
+        const updatedPos = { ...pos, currentPrice: price };
+        
+        // Check for TP or SL hit
+        if (price >= pos.takeProfit) {
+          updatedPos.status = 'tp-hit';
+          handleTPHit(updatedPos);
+          toast.success(`🎯 Take Profit hit for ${pos.token}!`);
+        } else if (price <= pos.stopLoss) {
+          updatedPos.status = 'sl-hit';
+          handleSLHit(updatedPos);
+          toast.error(`🛑 Stop Loss hit for ${pos.token}!`);
+        }
+        
+        return updatedPos;
+      }
+      return pos;
+    }));
+  };
+
+  const handleTPHit = (position: TradingPosition) => {
+    const totalValue = position.amount * position.takeProfit;
+    const profit = totalValue - (position.amount * position.entryPrice);
+    
+    // 30% stays in trading wallet
+    const tradingProfit = profit * 0.3;
+    setWalletBalance(prev => prev + totalValue - (profit * 0.7));
+    
+    // 70% goes to investment wallet as tokens
+    const investmentTokens = (profit * 0.7) / position.takeProfit;
+    const investmentTP = position.takeProfit * 2; // 2x from TP price
+
+    const investmentPosition: InvestmentPosition = {
+      id: Date.now().toString(),
+      token: position.token,
+      amount: investmentTokens,
+      entryPrice: position.takeProfit,
+      currentPrice: position.takeProfit,
+      investmentTP: investmentTP,
+      status: 'active',
+      dateCreated: new Date().toISOString(),
+      originTradingId: position.id
     };
 
     setInvestmentPositions(prev => [...prev, investmentPosition]);
+    toast.success(`70% of profit moved to Investment Wallet as ${position.token} tokens`);
   };
 
-  const executeTrade = () => {
-    if (!newTrade.token || newTrade.amount <= 0 || newTrade.entryPrice <= 0) {
-      toast.error('Please fill in all required fields');
-      return;
+  const handleSLHit = (position: TradingPosition) => {
+    const totalValue = position.amount * position.stopLoss;
+    setWalletBalance(prev => prev + totalValue);
+  };
+
+  const updateInvestmentPrice = (id: string, newPrice: string) => {
+    const price = parseFloat(newPrice);
+    if (isNaN(price)) return;
+
+    setInvestmentPositions(investmentPositions.map(pos => {
+      if (pos.id === id && pos.status === 'active') {
+        const updatedPos = { ...pos, currentPrice: price };
+        
+        if (price >= pos.investmentTP) {
+          updatedPos.status = 'tp-hit';
+          toast.success(`🎯 Investment TP hit for ${pos.token}! Time to take profits!`);
+        }
+        
+        return updatedPos;
+      }
+      return pos;
+    }));
+  };
+
+  const closePosition = (id: string, type: 'trading' | 'investment') => {
+    if (type === 'trading') {
+      const position = tradingPositions.find(p => p.id === id);
+      if (position) {
+        const totalValue = position.amount * position.currentPrice;
+        setWalletBalance(prev => prev + totalValue);
+        setTradingPositions(prev => prev.filter(p => p.id !== id));
+        toast.success("Trading position closed");
+      }
+    } else {
+      setInvestmentPositions(prev => prev.filter(p => p.id !== id));
+      toast.success("Investment position closed");
     }
-
-    const totalWallet = getTotalWalletValue();
-    const tradingPercentage = calculateTradingPercentage(newTrade.token, newTrade.isFastRecovery);
-    const maxTradeAmount = (totalWallet * tradingPercentage) / 100;
-
-    if (newTrade.amount > maxTradeAmount) {
-      toast.error(`Trade amount exceeds ${tradingPercentage}% limit ($${maxTradeAmount.toFixed(2)})`);
-      return;
-    }
-
-    const quantity = newTrade.amount / newTrade.entryPrice;
-    const currentPrice = mockPrices[newTrade.token] || newTrade.entryPrice;
-
-    const trade: Trade = {
-      id: `trade_${Date.now()}`,
-      token: newTrade.token,
-      amount: newTrade.amount,
-      entryPrice: newTrade.entryPrice,
-      currentPrice: currentPrice,
-      quantity: quantity,
-      stopLoss: newTrade.stopLoss,
-      takeProfit: newTrade.takeProfit,
-      profitPercentage: 0,
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      isFastRecovery: newTrade.isFastRecovery
-    };
-
-    setTrades(prev => [...prev, trade]);
-    saveTradingData([...trades, trade], investmentPositions);
-    
-    setNewTrade({
-      token: '',
-      amount: 0,
-      entryPrice: 0,
-      stopLoss: 0,
-      takeProfit: 0,
-      isFastRecovery: false
-    });
-
-    toast.success(`Trade executed for ${newTrade.token}`);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
+  const calculatePnL = (position: TradingPosition) => {
+    const currentValue = position.amount * position.currentPrice;
+    const entryValue = position.amount * position.entryPrice;
+    return currentValue - entryValue;
   };
 
-  const activeTrades = trades.filter(trade => trade.status === 'active');
-  const activeInvestments = investmentPositions.filter(pos => pos.status === 'active');
+  const calculateInvestmentPnL = (position: InvestmentPosition) => {
+    const currentValue = position.amount * position.currentPrice;
+    const entryValue = position.amount * position.entryPrice;
+    return currentValue - entryValue;
+  };
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <TrendingUp className="w-5 h-5" />
-            <span>Trading Wallet</span>
-          </CardTitle>
-          <CardDescription>
-            Execute trades with automatic profit allocation to investment wallet
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="token">Token Symbol</Label>
-              <Input
-                id="token"
-                value={newTrade.token}
-                onChange={(e) => setNewTrade({...newTrade, token: e.target.value.toUpperCase()})}
-                placeholder="BTC, ETH, etc."
-              />
-            </div>
-            <div>
-              <Label htmlFor="amount">Trade Amount ($)</Label>
-              <Input
-                id="amount"
-                type="number"
-                value={newTrade.amount || ''}
-                onChange={(e) => setNewTrade({...newTrade, amount: Number(e.target.value)})}
-                placeholder="1000"
-              />
-            </div>
-            <div>
-              <Label htmlFor="entryPrice">Entry Price ($)</Label>
-              <Input
-                id="entryPrice"
-                type="number"
-                value={newTrade.entryPrice || ''}
-                onChange={(e) => setNewTrade({...newTrade, entryPrice: Number(e.target.value)})}
-                placeholder="43500"
-              />
-            </div>
-            <div>
-              <Label htmlFor="stopLoss">Stop Loss ($)</Label>
-              <Input
-                id="stopLoss"
-                type="number"
-                value={newTrade.stopLoss || ''}
-                onChange={(e) => setNewTrade({...newTrade, stopLoss: Number(e.target.value)})}
-                placeholder="40000"
-              />
-            </div>
-            <div>
-              <Label htmlFor="takeProfit">Take Profit ($)</Label>
-              <Input
-                id="takeProfit"
-                type="number"
-                value={newTrade.takeProfit || ''}
-                onChange={(e) => setNewTrade({...newTrade, takeProfit: Number(e.target.value)})}
-                placeholder="50000"
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="fastRecovery"
-                checked={newTrade.isFastRecovery}
-                onChange={(e) => setNewTrade({...newTrade, isFastRecovery: e.target.checked})}
-              />
-              <Label htmlFor="fastRecovery">Fast Recovery Token (Top 50)</Label>
-            </div>
-          </div>
-
-          <div className="text-sm text-gray-600">
-            <p>Trading Allocation Rules:</p>
-            <ul className="list-disc list-inside space-y-1">
-              <li>BTC: 20% of total wallet</li>
-              <li>ETH/SOL: 10% of total wallet each</li>
-              <li>Fast Recovery (Top 50): 8% of total wallet</li>
-              <li>Other tokens: 5% of total wallet</li>
-            </ul>
-          </div>
-
-          <Button onClick={executeTrade} className="w-full">
-            Execute Trade
-          </Button>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Wallet Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <TrendingUp className="w-5 h-5" />
-              <span>Active Trades</span>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center">
+              <Wallet className="w-4 h-4 mr-2" />
+              Trading Balance
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {activeTrades.length === 0 ? (
-              <p className="text-gray-500">No active trades</p>
-            ) : (
-              <div className="space-y-3">
-                {activeTrades.map(trade => (
-                  <div key={trade.id} className="p-3 border rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <Badge variant="outline">{trade.token}</Badge>
-                      {trade.isFastRecovery && (
-                        <Badge variant="default" className="bg-blue-600">Fast Recovery</Badge>
-                      )}
-                      <span className={`text-sm font-bold ${trade.profitPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {trade.profitPercentage >= 0 ? '+' : ''}{trade.profitPercentage.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>Amount: {formatCurrency(trade.amount)}</div>
-                      <div>Quantity: {trade.quantity.toFixed(6)}</div>
-                      <div>Entry: {formatCurrency(trade.entryPrice)}</div>
-                      <div>Current: {formatCurrency(trade.currentPrice)}</div>
-                      <div>SL: {formatCurrency(trade.stopLoss)}</div>
-                      <div>TP: {formatCurrency(trade.takeProfit)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="text-2xl font-bold">${walletBalance.toFixed(2)}</div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Wallet className="w-5 h-5" />
-              <span>Investment Wallet</span>
-            </CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Active Trading Positions</CardTitle>
           </CardHeader>
           <CardContent>
-            {activeInvestments.length === 0 ? (
-              <p className="text-gray-500">No investment positions</p>
-            ) : (
-              <div className="space-y-3">
-                {activeInvestments.map(position => (
-                  <div key={position.id} className="p-3 border rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <Badge variant="outline">{position.token}</Badge>
-                      <span className={`text-sm font-bold ${position.profitPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {position.profitPercentage >= 0 ? '+' : ''}{position.profitPercentage.toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>Amount: {formatCurrency(position.amount)}</div>
-                      <div>Quantity: {position.quantity.toFixed(6)}</div>
-                      <div>Entry: {formatCurrency(position.entryPrice)}</div>
-                      <div>Current: {formatCurrency(position.currentPrice)}</div>
-                      <div>Target: {formatCurrency(position.investmentTakeProfit)}</div>
-                      <div>Progress: {((position.currentPrice / position.investmentTakeProfit) * 100).toFixed(1)}%</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="text-2xl font-bold">{tradingPositions.filter(p => p.status === 'active').length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Investment Positions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{investmentPositions.length}</div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Open New Position */}
       <Card>
         <CardHeader>
-          <CardTitle>Trading Rules & Strategy</CardTitle>
+          <CardTitle>Open New Trading Position</CardTitle>
+          <CardDescription>
+            Allocation rules: BTC (20%), ETH/SOL (10%), Fast Recovery (8%), Others (5%)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+              <Label htmlFor="token">Token</Label>
+              <Input
+                id="token"
+                placeholder="BTC"
+                value={newPosition.token}
+                onChange={(e) => setNewPosition({...newPosition, token: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label htmlFor="allocationType">Type</Label>
+              <Select value={newPosition.allocationType} onValueChange={(value: any) => setNewPosition({...newPosition, allocationType: value})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="btc">BTC (20%)</SelectItem>
+                  <SelectItem value="eth">ETH (10%)</SelectItem>
+                  <SelectItem value="sol">SOL (10%)</SelectItem>
+                  <SelectItem value="fast-recovery">Fast Recovery (8%)</SelectItem>
+                  <SelectItem value="other">Other (5%)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="entryPrice">Entry Price</Label>
+              <Input
+                id="entryPrice"
+                type="number"
+                placeholder="45000"
+                value={newPosition.entryPrice}
+                onChange={(e) => setNewPosition({...newPosition, entryPrice: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label htmlFor="takeProfit">Take Profit</Label>
+              <Input
+                id="takeProfit"
+                type="number"
+                placeholder="50000"
+                value={newPosition.takeProfit}
+                onChange={(e) => setNewPosition({...newPosition, takeProfit: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label htmlFor="stopLoss">Stop Loss</Label>
+              <Input
+                id="stopLoss"
+                type="number"
+                placeholder="42000"
+                value={newPosition.stopLoss}
+                onChange={(e) => setNewPosition({...newPosition, stopLoss: e.target.value})}
+              />
+            </div>
+          </div>
+          <Button onClick={openPosition} className="w-full">
+            Open Position ({getAllocationPercentage(newPosition.allocationType)}% = ${(walletBalance * getAllocationPercentage(newPosition.allocationType) / 100).toFixed(2)})
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Trading Positions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Trading Positions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-sm text-gray-600 space-y-2">
-            <p><strong>Profit Management:</strong></p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              <li>When TP is hit, 70% of profit goes to Investment Wallet as tokens</li>
-              <li>Investment Wallet has separate TP (usually 100% profit)</li>
-              <li>Investment positions are long-term holds until TP is reached</li>
-              <li>Alerts are sent for both trading and investment TP/SL hits</li>
-            </ul>
-            <p className="mt-4 p-2 bg-blue-50 border border-blue-200 rounded">
-              <strong>💡 Strategy:</strong> This system separates short-term trading profits from long-term investment growth, maximizing compound returns.
-            </p>
+          <div className="space-y-4">
+            {tradingPositions.map((position) => {
+              const pnl = calculatePnL(position);
+              const pnlPercentage = (pnl / (position.amount * position.entryPrice)) * 100;
+              
+              return (
+                <Card key={position.id} className={`${position.status === 'tp-hit' ? 'border-green-500' : position.status === 'sl-hit' ? 'border-red-500' : ''}`}>
+                  <CardContent className="pt-4">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-semibold">{position.token}</h3>
+                        <Badge variant="outline">
+                          {getAllocationPercentage(position.allocationType)}%
+                        </Badge>
+                        {position.status === 'tp-hit' && <Badge className="bg-green-500">TP Hit</Badge>}
+                        {position.status === 'sl-hit' && <Badge variant="destructive">SL Hit</Badge>}
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => closePosition(position.id, 'trading')}>
+                        Close
+                      </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                      <div>
+                        <Label className="text-gray-600">Entry Price</Label>
+                        <p className="font-semibold">${position.entryPrice}</p>
+                      </div>
+                      <div>
+                        <Label className="text-gray-600">Current Price</Label>
+                        {position.status === 'active' ? (
+                          <Input
+                            type="number"
+                            value={position.currentPrice}
+                            onChange={(e) => updatePositionPrice(position.id, e.target.value)}
+                            className="w-20 h-8"
+                          />
+                        ) : (
+                          <p className="font-semibold">${position.currentPrice}</p>
+                        )}
+                      </div>
+                      <div>
+                        <Label className="text-gray-600">Take Profit</Label>
+                        <p className="font-semibold">${position.takeProfit}</p>
+                      </div>
+                      <div>
+                        <Label className="text-gray-600">Stop Loss</Label>
+                        <p className="font-semibold">${position.stopLoss}</p>
+                      </div>
+                      <div>
+                        <Label className="text-gray-600">P&L</Label>
+                        <p className={`font-semibold ${pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          ${pnl.toFixed(2)} ({pnlPercentage.toFixed(2)}%)
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+            {tradingPositions.length === 0 && (
+              <p className="text-center text-gray-500 py-4">No trading positions yet</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Investment Positions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Investment Wallet (70% Profit Positions)</CardTitle>
+          <CardDescription>
+            These are tokens from trading profits with 2x take profit targets
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {investmentPositions.map((position) => {
+              const pnl = calculateInvestmentPnL(position);
+              const pnlPercentage = (pnl / (position.amount * position.entryPrice)) * 100;
+              
+              return (
+                <Card key={position.id} className={position.status === 'tp-hit' ? 'border-green-500' : ''}>
+                  <CardContent className="pt-4">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center space-x-2">
+                        <h3 className="font-semibold">{position.token}</h3>
+                        <Badge variant="outline" className="bg-blue-100">Investment</Badge>
+                        {position.status === 'tp-hit' && <Badge className="bg-green-500">TP Hit - Take Profits!</Badge>}
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => closePosition(position.id, 'investment')}>
+                        Close
+                      </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                      <div>
+                        <Label className="text-gray-600">Amount</Label>
+                        <p className="font-semibold">{position.amount.toFixed(6)}</p>
+                      </div>
+                      <div>
+                        <Label className="text-gray-600">Entry Price</Label>
+                        <p className="font-semibold">${position.entryPrice}</p>
+                      </div>
+                      <div>
+                        <Label className="text-gray-600">Current Price</Label>
+                        {position.status === 'active' ? (
+                          <Input
+                            type="number"
+                            value={position.currentPrice}
+                            onChange={(e) => updateInvestmentPrice(position.id, e.target.value)}
+                            className="w-20 h-8"
+                          />
+                        ) : (
+                          <p className="font-semibold">${position.currentPrice}</p>
+                        )}
+                      </div>
+                      <div>
+                        <Label className="text-gray-600">Investment TP</Label>
+                        <p className="font-semibold">${position.investmentTP}</p>
+                      </div>
+                      <div>
+                        <Label className="text-gray-600">P&L</Label>
+                        <p className={`font-semibold ${pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          ${pnl.toFixed(2)} ({pnlPercentage.toFixed(2)}%)
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+            {investmentPositions.length === 0 && (
+              <p className="text-center text-gray-500 py-4">No investment positions yet</p>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { AlertCircle, TrendingUp, Wallet, Shield, Bell } from "lucide-react";
+import { AlertCircle, TrendingUp, Wallet, Shield, Bell, Video, Signal } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import UserAuth from "@/components/UserAuth";
@@ -16,6 +15,8 @@ import PortfolioCalculator from "@/components/PortfolioCalculator";
 import PortfolioDisplay from "@/components/PortfolioDisplay";
 import InvestmentTracker from "@/components/InvestmentTracker";
 import TradingWallet from "@/components/TradingWallet";
+import ContentCreator from "@/components/ContentCreator";
+import SignalsChannel from "@/components/SignalsChannel";
 
 const Index = () => {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
@@ -95,7 +96,7 @@ const Index = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="calculator" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="calculator" className="flex items-center space-x-2">
               <TrendingUp className="w-4 h-4" />
               <span>Portfolio Calculator</span>
@@ -111,6 +112,14 @@ const Index = () => {
             <TabsTrigger value="trading" className="flex items-center space-x-2">
               <TrendingUp className="w-4 h-4" />
               <span>Trading Wallet</span>
+            </TabsTrigger>
+            <TabsTrigger value="content" className="flex items-center space-x-2">
+              <Video className="w-4 h-4" />
+              <span>Education</span>
+            </TabsTrigger>
+            <TabsTrigger value="signals" className="flex items-center space-x-2">
+              <Signal className="w-4 h-4" />
+              <span>Signals</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center space-x-2">
               <Bell className="w-4 h-4" />
@@ -141,6 +150,14 @@ const Index = () => {
               portfolioData={portfolioData}
               currentUser={currentUser}
             />
+          </TabsContent>
+
+          <TabsContent value="content">
+            <ContentCreator currentUser={currentUser} />
+          </TabsContent>
+
+          <TabsContent value="signals">
+            <SignalsChannel currentUser={currentUser} />
           </TabsContent>
 
           <TabsContent value="notifications">
