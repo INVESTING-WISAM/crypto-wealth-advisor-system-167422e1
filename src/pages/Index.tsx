@@ -15,6 +15,7 @@ import UserAuth from "@/components/UserAuth";
 import PortfolioCalculator from "@/components/PortfolioCalculator";
 import PortfolioDisplay from "@/components/PortfolioDisplay";
 import InvestmentTracker from "@/components/InvestmentTracker";
+import TradingWallet from "@/components/TradingWallet";
 
 const Index = () => {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
@@ -94,7 +95,7 @@ const Index = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="calculator" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="calculator" className="flex items-center space-x-2">
               <TrendingUp className="w-4 h-4" />
               <span>Portfolio Calculator</span>
@@ -106,6 +107,10 @@ const Index = () => {
             <TabsTrigger value="tracker" className="flex items-center space-x-2">
               <Shield className="w-4 h-4" />
               <span>Investment Tracker</span>
+            </TabsTrigger>
+            <TabsTrigger value="trading" className="flex items-center space-x-2">
+              <TrendingUp className="w-4 h-4" />
+              <span>Trading Wallet</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center space-x-2">
               <Bell className="w-4 h-4" />
@@ -126,6 +131,13 @@ const Index = () => {
 
           <TabsContent value="tracker">
             <InvestmentTracker 
+              portfolioData={portfolioData}
+              currentUser={currentUser}
+            />
+          </TabsContent>
+
+          <TabsContent value="trading">
+            <TradingWallet 
               portfolioData={portfolioData}
               currentUser={currentUser}
             />

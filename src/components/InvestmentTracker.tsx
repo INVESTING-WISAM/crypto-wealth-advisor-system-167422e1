@@ -169,13 +169,13 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
       ((currentValue - updatedProgress[token].totalInvested) / updatedProgress[token].totalInvested) * 100 : 0;
 
     const tokenDetails = portfolioData.allocation[token];
-    if (updatedProgress[token].totalInvested >= tokenDetails.amount) {
+    if (updatedProgress[token].totalInvested >= (tokenDetails?.amount || 0)) {
       updatedProgress[token].targetReached = true;
       toast.success(`🎉 ${token} investment target reached!`);
     }
 
     // Check for 100% profit milestone
-    if (updatedProgress[token].profitPercentage && updatedProgress[token].profitPercentage >= 100) {
+    if ((updatedProgress[token].profitPercentage || 0) >= 100) {
       toast.success(`🚀 ${token} has reached 100% profit! Consider withdrawing your capital.`);
     }
 
@@ -187,7 +187,7 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
 
   const withdrawCapital = (token: string) => {
     const updatedProgress = { ...investmentProgress };
-    if (updatedProgress[token] && updatedProgress[token].profitPercentage && updatedProgress[token].profitPercentage >= 100) {
+    if (updatedProgress[token] && (updatedProgress[token].profitPercentage || 0) >= 100) {
       updatedProgress[token].capitalWithdrawn = true;
       setInvestmentProgress(updatedProgress);
       saveInvestmentProgress(updatedProgress);
@@ -207,7 +207,7 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
   const calculateOverallProgress = () => {
     if (!portfolioData?.allocation) return 0;
     
-    const totalTarget = Object.values(portfolioData.allocation).reduce((sum: number, details: any) => sum + details.amount, 0);
+    const totalTarget = Object.values(portfolioData.allocation).reduce((sum: number, details: any) => sum + (details?.amount || 0), 0);
     const totalInvested = Object.values(investmentProgress).reduce((sum: number, progress: InvestmentProgress) => sum + (progress?.totalInvested || 0), 0);
     
     return totalTarget > 0 ? (totalInvested / totalTarget) * 100 : 0;
@@ -283,10 +283,10 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
                 capitalWithdrawn: false
               };
 
-              const progressPercentage = (progress.totalInvested / details.amount) * 100;
-              const weeklyTarget = details.amount / details.weeks;
-              const remainingAmount = details.amount - progress.totalInvested;
-              const remainingWeeks = details.weeks - progress.weeksPassed;
+              const progressPercentage = (progress.totalInvested / (details?.amount || 1)) * 100;
+              const weeklyTarget = (details?.amount || 0) / (details?.weeks || 1);
+              const remainingAmount = (details?.amount || 0) - progress.totalInvested;
+              const remainingWeeks = (details?.weeks || 0) - progress.weeksPassed;
               const profitPercentage = progress.profitPercentage || 0;
 
               return (
@@ -332,7 +332,7 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
 
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span>Progress: {formatCurrency(progress.totalInvested)} / {formatCurrency(details.amount)}</span>
+                      <span>Progress: {formatCurrency(progress.totalInvested)} / {formatCurrency(details?.amount || 0)}</span>
                       <span>{progressPercentage.toFixed(1)}%</span>
                     </div>
                     <Progress value={Math.min(progressPercentage, 100)} className="h-2" />
@@ -354,7 +354,7 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
                     </div>
                     <div>
                       <p className="text-gray-600">Weeks Completed</p>
-                      <p className="font-medium">{progress.weeksPassed} / {details.weeks}</p>
+                      <p className="font-medium">{progress.weeksPassed} / {details?.weeks || 0}</p>
                     </div>
                     <div>
                       <p className="text-gray-600">Remaining Amount</p>
