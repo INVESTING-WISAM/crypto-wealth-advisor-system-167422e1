@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, CheckCircle, AlertTriangle, Calendar, Target } from "lucide-react";
+import { Shield, CheckCircle, AlertTriangle, Calendar, Target, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
 interface InvestmentTrackerProps {
@@ -13,9 +12,31 @@ interface InvestmentTrackerProps {
   currentUser: string;
 }
 
+interface InvestmentProgress {
+  weeksPassed: number;
+  totalInvested: number;
+  lastInvestment: string | null;
+  targetReached: boolean;
+  currentValue?: number;
+  profitPercentage?: number;
+  capitalWithdrawn?: boolean;
+}
+
 const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, currentUser }) => {
-  const [investmentProgress, setInvestmentProgress] = useState<any>({});
+  const [investmentProgress, setInvestmentProgress] = useState<Record<string, InvestmentProgress>>({});
   const [notifications, setNotifications] = useState<any[]>([]);
+
+  // Mock current prices for profit calculation
+  const mockPrices: { [key: string]: number } = {
+    BTC: 43500,
+    ETH: 2650,
+    SOL: 98,
+    CORE: 1.25,
+    ADA: 0.52,
+    DOT: 7.85,
+    LINK: 15.40,
+    UNI: 6.80
+  };
 
   useEffect(() => {
     if (portfolioData && currentUser) {
@@ -30,14 +51,17 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
       setInvestmentProgress(JSON.parse(savedProgress));
     } else {
       // Initialize progress tracking
-      const initialProgress: any = {};
+      const initialProgress: Record<string, InvestmentProgress> = {};
       if (portfolioData?.allocation) {
         Object.keys(portfolioData.allocation).forEach(token => {
           initialProgress[token] = {
             weeksPassed: 0,
             totalInvested: 0,
             lastInvestment: null,
-            targetReached: false
+            targetReached: false,
+            currentValue: 0,
+            profitPercentage: 0,
+            capitalWithdrawn: false
           };
         });
         setInvestmentProgress(initialProgress);
@@ -46,7 +70,7 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
     }
   };
 
-  const saveInvestmentProgress = (progress: any) => {
+  const saveInvestmentProgress = (progress: Record<string, InvestmentProgress>) => {
     localStorage.setItem(`investment_progress_${currentUser}`, JSON.stringify(progress));
   };
 
@@ -95,9 +119,29 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
           compliance
         });
       }
+
+      // Check for 100% profit milestone
+      if (progress.profitPercentage && progress.profitPercentage >= 100 && !progress.capitalWithdrawn) {
+        newNotifications.push({
+          type: 'success',
+          token,
+          message: `🎉 ${token} has reached 100% profit! You can now withdraw your initial capital.`,
+          compliance
+        });
+      }
     });
 
     setNotifications(newNotifications);
+  };
+
+  const calculateCurrentValue = (token: string, totalInvested: number): number => {
+    const tokenDetails = portfolioData.allocation[token];
+    if (!tokenDetails) return totalInvested;
+    
+    const currentPrice = mockPrices[token] || 1;
+    const averageBuyPrice = currentPrice * 0.85; // Assume average buy price is 15% lower
+    const tokensOwned = totalInvested / averageBuyPrice;
+    return tokensOwned * currentPrice;
   };
 
   const recordInvestment = (token: string, amount: number) => {
@@ -107,7 +151,10 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
         weeksPassed: 0,
         totalInvested: 0,
         lastInvestment: null,
-        targetReached: false
+        targetReached: false,
+        currentValue: 0,
+        profitPercentage: 0,
+        capitalWithdrawn: false
       };
     }
 
@@ -115,16 +162,37 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
     updatedProgress[token].lastInvestment = new Date().toISOString();
     updatedProgress[token].weeksPassed += 1;
 
+    // Calculate current value and profit percentage
+    const currentValue = calculateCurrentValue(token, updatedProgress[token].totalInvested);
+    updatedProgress[token].currentValue = currentValue;
+    updatedProgress[token].profitPercentage = updatedProgress[token].totalInvested > 0 ? 
+      ((currentValue - updatedProgress[token].totalInvested) / updatedProgress[token].totalInvested) * 100 : 0;
+
     const tokenDetails = portfolioData.allocation[token];
     if (updatedProgress[token].totalInvested >= tokenDetails.amount) {
       updatedProgress[token].targetReached = true;
       toast.success(`🎉 ${token} investment target reached!`);
     }
 
+    // Check for 100% profit milestone
+    if (updatedProgress[token].profitPercentage && updatedProgress[token].profitPercentage >= 100) {
+      toast.success(`🚀 ${token} has reached 100% profit! Consider withdrawing your capital.`);
+    }
+
     setInvestmentProgress(updatedProgress);
     saveInvestmentProgress(updatedProgress);
     checkCompliance();
     toast.success(`Investment of $${amount} recorded for ${token}`);
+  };
+
+  const withdrawCapital = (token: string) => {
+    const updatedProgress = { ...investmentProgress };
+    if (updatedProgress[token] && updatedProgress[token].profitPercentage && updatedProgress[token].profitPercentage >= 100) {
+      updatedProgress[token].capitalWithdrawn = true;
+      setInvestmentProgress(updatedProgress);
+      saveInvestmentProgress(updatedProgress);
+      toast.success(`🎉 Capital withdrawn from ${token}! Let your profits ride.`);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -140,9 +208,16 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
     if (!portfolioData?.allocation) return 0;
     
     const totalTarget = Object.values(portfolioData.allocation).reduce((sum: number, details: any) => sum + details.amount, 0);
-    const totalInvested = Object.values(investmentProgress).reduce((sum: number, progress: any) => sum + (progress?.totalInvested || 0), 0);
+    const totalInvested = Object.values(investmentProgress).reduce((sum: number, progress: InvestmentProgress) => sum + (progress?.totalInvested || 0), 0);
     
     return totalTarget > 0 ? (totalInvested / totalTarget) * 100 : 0;
+  };
+
+  const calculateOverallProfit = () => {
+    const totalInvested = Object.values(investmentProgress).reduce((sum: number, progress: InvestmentProgress) => sum + (progress?.totalInvested || 0), 0);
+    const totalCurrentValue = Object.values(investmentProgress).reduce((sum: number, progress: InvestmentProgress) => sum + (progress?.currentValue || 0), 0);
+    
+    return totalInvested > 0 ? ((totalCurrentValue - totalInvested) / totalInvested) * 100 : 0;
   };
 
   if (!portfolioData) {
@@ -162,6 +237,7 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
   }
 
   const overallProgress = calculateOverallProgress();
+  const overallProfit = calculateOverallProfit();
 
   return (
     <div className="space-y-6">
@@ -176,12 +252,23 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium">Overall Progress</span>
-              <span className="text-sm text-gray-600">{overallProgress.toFixed(1)}%</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium">Investment Progress</span>
+                <span className="text-sm text-gray-600">{overallProgress.toFixed(1)}%</span>
+              </div>
+              <Progress value={overallProgress} className="h-3" />
             </div>
-            <Progress value={overallProgress} className="h-3" />
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium">Overall Profit</span>
+                <span className={`text-sm font-bold ${overallProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {overallProfit >= 0 ? '+' : ''}{overallProfit.toFixed(1)}%
+                </span>
+              </div>
+              <Progress value={Math.min(Math.max(overallProfit, 0), 200)} className="h-3" />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4">
@@ -190,13 +277,17 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
                 weeksPassed: 0,
                 totalInvested: 0,
                 lastInvestment: null,
-                targetReached: false
+                targetReached: false,
+                currentValue: 0,
+                profitPercentage: 0,
+                capitalWithdrawn: false
               };
 
               const progressPercentage = (progress.totalInvested / details.amount) * 100;
               const weeklyTarget = details.amount / details.weeks;
               const remainingAmount = details.amount - progress.totalInvested;
               const remainingWeeks = details.weeks - progress.weeksPassed;
+              const profitPercentage = progress.profitPercentage || 0;
 
               return (
                 <div key={token} className="p-4 border rounded-lg space-y-3">
@@ -206,14 +297,37 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
                         {token}
                       </Badge>
                       {progress.targetReached && <CheckCircle className="w-4 h-4 text-green-600" />}
+                      {profitPercentage >= 100 && (
+                        <Badge variant="default" className="bg-green-600">
+                          100%+ Profit!
+                        </Badge>
+                      )}
+                      {progress.capitalWithdrawn && (
+                        <Badge variant="outline" className="border-green-600 text-green-600">
+                          Capital Withdrawn
+                        </Badge>
+                      )}
                     </div>
-                    <Button 
-                      size="sm" 
-                      onClick={() => recordInvestment(token, weeklyTarget)}
-                      disabled={progress.targetReached}
-                    >
-                      Record Investment
-                    </Button>
+                    <div className="flex space-x-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => recordInvestment(token, weeklyTarget)}
+                        disabled={progress.targetReached}
+                      >
+                        Record Investment
+                      </Button>
+                      {profitPercentage >= 100 && !progress.capitalWithdrawn && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="border-green-600 text-green-600 hover:bg-green-50"
+                          onClick={() => withdrawCapital(token)}
+                        >
+                          <TrendingUp className="w-4 h-4 mr-1" />
+                          Withdraw Capital
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -222,6 +336,15 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
                       <span>{progressPercentage.toFixed(1)}%</span>
                     </div>
                     <Progress value={Math.min(progressPercentage, 100)} className="h-2" />
+                    
+                    {progress.currentValue && progress.currentValue > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span>Current Value: {formatCurrency(progress.currentValue)}</span>
+                        <span className={`font-bold ${profitPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {profitPercentage >= 0 ? '+' : ''}{profitPercentage.toFixed(1)}%
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 text-sm">
@@ -268,6 +391,7 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
               <Alert key={index} className={
                 notification.type === 'warning' ? 'border-yellow-200 bg-yellow-50' :
                 notification.type === 'alert' ? 'border-red-200 bg-red-50' :
+                notification.type === 'success' ? 'border-green-200 bg-green-50' :
                 'border-blue-200 bg-blue-50'
               }>
                 <AlertTriangle className="h-4 w-4" />
@@ -294,6 +418,9 @@ const InvestmentTracker: React.FC<InvestmentTrackerProps> = ({ portfolioData, cu
             <p>• <strong>CORE:</strong> Invest weekly for 70 weeks (1.35 years)</p>
             <p>• <strong>Top-30 tokens:</strong> Invest weekly for 85 weeks (1.63 years)</p>
             <p>• <strong>High-risk tokens:</strong> Invest weekly for 100 weeks (1.92 years)</p>
+            <p className="mt-4 p-2 bg-green-50 border border-green-200 rounded">
+              <strong>💡 Pro Tip:</strong> Once any token reaches 100% profit, you can withdraw your initial capital and let the profits continue growing!
+            </p>
           </div>
         </CardContent>
       </Card>
