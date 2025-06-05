@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -483,6 +484,7 @@ const TradingWallet = ({ portfolioData, currentUser }: { portfolioData: any, cur
             {investmentPositions.map((position) => {
               const pnl = calculateInvestmentPnL(position);
               const pnlPercentage = (pnl / (position.amount * position.entryPrice)) * 100;
+              const isLivePriceAvailable = prices[position.token]?.price;
               
               return (
                 <Card key={position.id} className={position.status === 'tp-hit' ? 'border-green-500' : ''}>
