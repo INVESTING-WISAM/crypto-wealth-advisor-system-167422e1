@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, TrendingUp, Target, Wallet } from "lucide-react";
+import { AlertTriangle, TrendingUp, Target, Wallet, RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
+import { useLivePrices } from "@/hooks/useLivePrices";
 
 interface TradingPosition {
   id: string;
@@ -46,6 +46,15 @@ const TradingWallet = ({ portfolioData, currentUser }: { portfolioData: any, cur
     stopLoss: '',
     allocationType: 'other' as 'btc' | 'eth' | 'sol' | 'fast-recovery' | 'other'
   });
+
+  // Get all unique tokens from positions for price tracking
+  const allTokens = Array.from(new Set([
+    ...tradingPositions.map(p => p.token),
+    ...investmentPositions.map(p => p.token),
+    'BTC', 'ETH', 'SOL', 'CORE' // Always include major tokens
+  ]));
+
+  const { prices, isLoading: pricesLoading, lastUpdated, error: pricesError, updatePrices } = useLivePrices(allTokens);
 
   const getAllocationPercentage = (type: string) => {
     switch (type) {
@@ -99,6 +108,8 @@ const TradingWallet = ({ portfolioData, currentUser }: { portfolioData: any, cur
       return;
     }
 
+    const currentPrice = prices[newPosition.token.toUpperCase()]?.price || entryPrice;
+
     const position: TradingPosition = {
       id: Date.now().toString(),
       token: newPosition.token.toUpperCase(),
@@ -106,7 +117,7 @@ const TradingWallet = ({ portfolioData, currentUser }: { portfolioData: any, cur
       amount: amount,
       takeProfit: parseFloat(newPosition.takeProfit),
       stopLoss: parseFloat(newPosition.stopLoss),
-      currentPrice: entryPrice,
+      currentPrice: currentPrice,
       allocationType: newPosition.allocationType,
       status: 'active',
       dateOpened: new Date().toISOString()
@@ -126,30 +137,50 @@ const TradingWallet = ({ portfolioData, currentUser }: { portfolioData: any, cur
     toast.success(`Position opened: ${position.token} with ${allocPercentage}% allocation`);
   };
 
-  const updatePositionPrice = (id: string, newPrice: string) => {
-    const price = parseFloat(newPrice);
-    if (isNaN(price)) return;
+  // Update positions with live prices
+  useEffect(() => {
+    if (Object.keys(prices).length === 0) return;
 
-    setTradingPositions(tradingPositions.map(pos => {
-      if (pos.id === id && pos.status === 'active') {
-        const updatedPos = { ...pos, currentPrice: price };
-        
-        // Check for TP or SL hit
-        if (price >= pos.takeProfit) {
-          updatedPos.status = 'tp-hit';
-          handleTPHit(updatedPos);
-          toast.success(`🎯 Take Profit hit for ${pos.token}!`);
-        } else if (price <= pos.stopLoss) {
-          updatedPos.status = 'sl-hit';
-          handleSLHit(updatedPos);
-          toast.error(`🛑 Stop Loss hit for ${pos.token}!`);
-        }
-        
-        return updatedPos;
+    // Update trading positions
+    setTradingPositions(prev => prev.map(pos => {
+      if (pos.status !== 'active') return pos;
+      
+      const livePrice = prices[pos.token]?.price;
+      if (!livePrice) return pos;
+
+      const updatedPos = { ...pos, currentPrice: livePrice };
+
+      // Check for TP or SL hit
+      if (livePrice >= pos.takeProfit && pos.status === 'active') {
+        updatedPos.status = 'tp-hit';
+        handleTPHit(updatedPos);
+        toast.success(`🎯 Take Profit hit for ${pos.token} at $${livePrice.toFixed(2)}!`);
+      } else if (livePrice <= pos.stopLoss && pos.status === 'active') {
+        updatedPos.status = 'sl-hit';
+        handleSLHit(updatedPos);
+        toast.error(`🛑 Stop Loss hit for ${pos.token} at $${livePrice.toFixed(2)}!`);
       }
-      return pos;
+
+      return updatedPos;
     }));
-  };
+
+    // Update investment positions
+    setInvestmentPositions(prev => prev.map(pos => {
+      if (pos.status !== 'active') return pos;
+      
+      const livePrice = prices[pos.token]?.price;
+      if (!livePrice) return pos;
+
+      const updatedPos = { ...pos, currentPrice: livePrice };
+
+      if (livePrice >= pos.investmentTP && pos.status === 'active') {
+        updatedPos.status = 'tp-hit';
+        toast.success(`🎯 Investment TP hit for ${pos.token} at $${livePrice.toFixed(2)}!`);
+      }
+
+      return updatedPos;
+    }));
+  }, [prices]);
 
   const handleTPHit = (position: TradingPosition) => {
     const totalValue = position.amount * position.takeProfit;
@@ -232,6 +263,41 @@ const TradingWallet = ({ portfolioData, currentUser }: { portfolioData: any, cur
 
   return (
     <div className="space-y-6">
+      {/* Live Price Status */}
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              {pricesError ? (
+                <WifiOff className="w-5 h-5 text-red-500" />
+              ) : (
+                <Wifi className="w-5 h-5 text-green-500" />
+              )}
+              <span className="text-sm">
+                {pricesError ? 'Price feed disconnected' : 'Live prices from OKX'}
+              </span>
+              {lastUpdated && (
+                <span className="text-xs text-gray-500">
+                  Last updated: {lastUpdated.toLocaleTimeString()}
+                </span>
+              )}
+            </div>
+            <Button variant="outline" size="sm" onClick={updatePrices} disabled={pricesLoading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${pricesLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+          {pricesError && (
+            <Alert className="mt-2">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                {pricesError}. Using last known prices.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Wallet Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
@@ -344,6 +410,7 @@ const TradingWallet = ({ portfolioData, currentUser }: { portfolioData: any, cur
             {tradingPositions.map((position) => {
               const pnl = calculatePnL(position);
               const pnlPercentage = (pnl / (position.amount * position.entryPrice)) * 100;
+              const isLivePriceAvailable = prices[position.token]?.price;
               
               return (
                 <Card key={position.id} className={`${position.status === 'tp-hit' ? 'border-green-500' : position.status === 'sl-hit' ? 'border-red-500' : ''}`}>
@@ -354,6 +421,7 @@ const TradingWallet = ({ portfolioData, currentUser }: { portfolioData: any, cur
                         <Badge variant="outline">
                           {getAllocationPercentage(position.allocationType)}%
                         </Badge>
+                        {isLivePriceAvailable && <Badge variant="outline" className="bg-green-100">Live</Badge>}
                         {position.status === 'tp-hit' && <Badge className="bg-green-500">TP Hit</Badge>}
                         {position.status === 'sl-hit' && <Badge variant="destructive">SL Hit</Badge>}
                       </div>
@@ -369,16 +437,12 @@ const TradingWallet = ({ portfolioData, currentUser }: { portfolioData: any, cur
                       </div>
                       <div>
                         <Label className="text-gray-600">Current Price</Label>
-                        {position.status === 'active' ? (
-                          <Input
-                            type="number"
-                            value={position.currentPrice}
-                            onChange={(e) => updatePositionPrice(position.id, e.target.value)}
-                            className="w-20 h-8"
-                          />
-                        ) : (
-                          <p className="font-semibold">${position.currentPrice}</p>
-                        )}
+                        <p className="font-semibold">
+                          ${position.currentPrice.toFixed(2)}
+                          {isLivePriceAvailable && (
+                            <span className="text-xs text-green-600 ml-1">●</span>
+                          )}
+                        </p>
                       </div>
                       <div>
                         <Label className="text-gray-600">Take Profit</Label>
@@ -445,16 +509,12 @@ const TradingWallet = ({ portfolioData, currentUser }: { portfolioData: any, cur
                       </div>
                       <div>
                         <Label className="text-gray-600">Current Price</Label>
-                        {position.status === 'active' ? (
-                          <Input
-                            type="number"
-                            value={position.currentPrice}
-                            onChange={(e) => updateInvestmentPrice(position.id, e.target.value)}
-                            className="w-20 h-8"
-                          />
-                        ) : (
-                          <p className="font-semibold">${position.currentPrice}</p>
-                        )}
+                        <p className="font-semibold">
+                          ${position.currentPrice.toFixed(2)}
+                          {isLivePriceAvailable && (
+                            <span className="text-xs text-green-600 ml-1">●</span>
+                          )}
+                        </p>
                       </div>
                       <div>
                         <Label className="text-gray-600">Investment TP</Label>

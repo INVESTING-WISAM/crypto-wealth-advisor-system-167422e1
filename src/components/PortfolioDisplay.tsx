@@ -1,11 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Wallet, TrendingUp, TrendingDown, RefreshCw, DollarSign } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, RefreshCw, DollarSign, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
+import { useLivePrices } from "@/hooks/useLivePrices";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PortfolioDisplayProps {
   portfolioData: any;
@@ -24,37 +25,10 @@ const mockPrices: { [key: string]: { price: number; change24h: number } } = {
 };
 
 const PortfolioDisplay: React.FC<PortfolioDisplayProps> = ({ portfolioData }) => {
-  const [currentPrices, setCurrentPrices] = useState(mockPrices);
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(new Date());
-
-  useEffect(() => {
-    // Simulate price updates every 30 seconds
-    const interval = setInterval(() => {
-      updatePrices();
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const updatePrices = () => {
-    setIsLoading(true);
-    
-    // Simulate API call with random price fluctuations
-    setTimeout(() => {
-      const updatedPrices = { ...currentPrices };
-      Object.keys(updatedPrices).forEach(token => {
-        const randomChange = (Math.random() - 0.5) * 0.1; // ±5% max change
-        updatedPrices[token].price *= (1 + randomChange);
-        updatedPrices[token].change24h = (Math.random() - 0.5) * 10; // ±5% daily change
-      });
-      
-      setCurrentPrices(updatedPrices);
-      setLastUpdated(new Date());
-      setIsLoading(false);
-      toast.success("Prices updated");
-    }, 1000);
-  };
+  // Get tokens from portfolio data
+  const portfolioTokens = portfolioData?.allocation ? Object.keys(portfolioData.allocation) : [];
+  
+  const { prices, isLoading, lastUpdated, error, updatePrices } = useLivePrices(portfolioTokens);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -74,7 +48,7 @@ const PortfolioDisplay: React.FC<PortfolioDisplayProps> = ({ portfolioData }) =>
     if (!portfolioData?.allocation) return 0;
     
     return Object.entries(portfolioData.allocation).reduce((total, [token, details]: [string, any]) => {
-      const tokenPrice = currentPrices[token]?.price || 1;
+      const tokenPrice = prices[token]?.price || 1;
       const tokenAmount = details.amount / tokenPrice;
       return total + (tokenAmount * tokenPrice);
     }, 0);
@@ -84,7 +58,7 @@ const PortfolioDisplay: React.FC<PortfolioDisplayProps> = ({ portfolioData }) =>
     if (!portfolioData?.allocation) return 0;
     
     return Object.entries(portfolioData.allocation).reduce((totalChange, [token, details]: [string, any]) => {
-      const tokenData = currentPrices[token];
+      const tokenData = prices[token];
       if (!tokenData) return totalChange;
       
       const weight = details.percentage / 100;
@@ -113,6 +87,40 @@ const PortfolioDisplay: React.FC<PortfolioDisplayProps> = ({ portfolioData }) =>
 
   return (
     <div className="space-y-6">
+      {/* Live Price Status */}
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              {error ? (
+                <WifiOff className="w-5 h-5 text-red-500" />
+              ) : (
+                <Wifi className="w-5 h-5 text-green-500" />
+              )}
+              <span className="text-sm">
+                {error ? 'Price feed disconnected' : 'Live prices from OKX'}
+              </span>
+              {lastUpdated && (
+                <span className="text-xs text-gray-500">
+                  Last updated: {lastUpdated.toLocaleTimeString()}
+                </span>
+              )}
+            </div>
+            <Button variant="outline" size="sm" onClick={updatePrices} disabled={isLoading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh Prices
+            </Button>
+          </div>
+          {error && (
+            <Alert className="mt-2">
+              <AlertDescription>
+                {error}. Showing last known prices.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -120,14 +128,7 @@ const PortfolioDisplay: React.FC<PortfolioDisplayProps> = ({ portfolioData }) =>
               <Wallet className="w-5 h-5" />
               <span>Portfolio Overview</span>
             </div>
-            <Button variant="outline" size="sm" onClick={updatePrices} disabled={isLoading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh Prices
-            </Button>
           </CardTitle>
-          <CardDescription>
-            Last updated: {lastUpdated.toLocaleTimeString()}
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -151,7 +152,7 @@ const PortfolioDisplay: React.FC<PortfolioDisplayProps> = ({ portfolioData }) =>
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Token Allocation</h3>
             {Object.entries(portfolioData.allocation).map(([token, details]: [string, any]) => {
-              const tokenData = currentPrices[token];
+              const tokenData = prices[token];
               const currentPrice = tokenData?.price || 1;
               const change24h = tokenData?.change24h || 0;
               const tokenAmount = details.amount / currentPrice;
