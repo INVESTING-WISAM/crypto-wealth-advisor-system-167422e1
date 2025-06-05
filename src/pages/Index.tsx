@@ -17,6 +17,7 @@ import InvestmentTracker from "@/components/InvestmentTracker";
 import TradingWallet from "@/components/TradingWallet";
 import ContentCreator from "@/components/ContentCreator";
 import SignalsChannel from "@/components/SignalsChannel";
+import WalletConnect from "@/components/WalletConnect";
 
 const Index = () => {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
@@ -96,7 +97,7 @@ const Index = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="calculator" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="calculator" className="flex items-center space-x-2">
               <TrendingUp className="w-4 h-4" />
               <span>Portfolio Calculator</span>
@@ -112,6 +113,10 @@ const Index = () => {
             <TabsTrigger value="trading" className="flex items-center space-x-2">
               <TrendingUp className="w-4 h-4" />
               <span>Trading Wallet</span>
+            </TabsTrigger>
+            <TabsTrigger value="wallets" className="flex items-center space-x-2">
+              <Wallet className="w-4 h-4" />
+              <span>Connect Wallets</span>
             </TabsTrigger>
             <TabsTrigger value="content" className="flex items-center space-x-2">
               <Video className="w-4 h-4" />
@@ -150,6 +155,10 @@ const Index = () => {
               portfolioData={portfolioData}
               currentUser={currentUser}
             />
+          </TabsContent>
+
+          <TabsContent value="wallets">
+            <WalletConnect currentUser={currentUser} />
           </TabsContent>
 
           <TabsContent value="content">
