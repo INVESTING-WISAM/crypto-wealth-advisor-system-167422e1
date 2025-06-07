@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,24 +5,43 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Wallet, Link, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Wallet, Eye, Shield, TrendingUp, AlertCircle, CheckCircle, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 
 interface ConnectedWallet {
   id: string;
-  type: 'metamask' | 'trust' | 'ledger' | 'okx-exchange' | 'manual';
+  type: 'metamask' | 'trust' | 'ledger' | 'manual' | 'okx-exchange' | 'binance' | 'coinbase';
+  category: 'cold' | 'hot' | 'trading';
   name: string;
   address: string;
   balance?: number;
   status: 'connected' | 'disconnected' | 'syncing';
   lastSync?: string;
+  notes?: string;
+}
+
+interface ExchangeCredentials {
+  apiKey: string;
+  secret: string;
+  passphrase?: string;
+  sandbox?: boolean;
 }
 
 const WalletConnect = ({ currentUser }: { currentUser: string }) => {
   const [connectedWallets, setConnectedWallets] = useState<ConnectedWallet[]>([]);
-  const [manualWallet, setManualWallet] = useState({ name: '', address: '' });
-  const [okxCredentials, setOkxCredentials] = useState({ apiKey: '', secret: '', passphrase: '' });
+  const [manualWallet, setManualWallet] = useState({ 
+    name: '', 
+    address: '', 
+    category: 'cold' as 'cold' | 'hot' | 'trading',
+    notes: ''
+  });
+  const [exchangeCredentials, setExchangeCredentials] = useState<{[key: string]: ExchangeCredentials}>({
+    okx: { apiKey: '', secret: '', passphrase: '' },
+    binance: { apiKey: '', secret: '' },
+    coinbase: { apiKey: '', secret: '', passphrase: '' }
+  });
 
   useEffect(() => {
     if (currentUser) {
@@ -40,7 +58,7 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
     }
   }, [connectedWallets, currentUser]);
 
-  const connectMetaMask = async () => {
+  const connectMetaMask = async (category: 'cold' | 'hot' | 'trading') => {
     if (typeof window.ethereum !== 'undefined') {
       try {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -48,13 +66,14 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
           const wallet: ConnectedWallet = {
             id: Date.now().toString(),
             type: 'metamask',
-            name: 'MetaMask',
+            category,
+            name: `MetaMask (${category.charAt(0).toUpperCase() + category.slice(1)})`,
             address: accounts[0],
             status: 'connected',
             lastSync: new Date().toISOString()
           };
           setConnectedWallets([...connectedWallets, wallet]);
-          toast.success('MetaMask wallet connected successfully!');
+          toast.success(`MetaMask ${category} wallet connected for read-only tracking!`);
         }
       } catch (error) {
         toast.error('Failed to connect MetaMask wallet');
@@ -66,47 +85,59 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
 
   const addManualWallet = () => {
     if (!manualWallet.name || !manualWallet.address) {
-      toast.error('Please fill in all fields');
+      toast.error('Please fill in wallet name and address');
       return;
     }
 
     const wallet: ConnectedWallet = {
       id: Date.now().toString(),
       type: 'manual',
+      category: manualWallet.category,
       name: manualWallet.name,
       address: manualWallet.address,
       status: 'connected',
-      lastSync: new Date().toISOString()
+      lastSync: new Date().toISOString(),
+      notes: manualWallet.notes
     };
 
     setConnectedWallets([...connectedWallets, wallet]);
-    setManualWallet({ name: '', address: '' });
-    toast.success('Manual wallet added successfully!');
+    setManualWallet({ name: '', address: '', category: 'cold', notes: '' });
+    toast.success('Wallet added for portfolio tracking!');
   };
 
-  const connectOKXExchange = () => {
-    if (!okxCredentials.apiKey || !okxCredentials.secret || !okxCredentials.passphrase) {
-      toast.error('Please fill in all OKX credentials');
+  const connectExchange = (exchangeType: 'okx' | 'binance' | 'coinbase') => {
+    const creds = exchangeCredentials[exchangeType];
+    if (!creds.apiKey || !creds.secret) {
+      toast.error(`Please fill in ${exchangeType.toUpperCase()} credentials`);
+      return;
+    }
+
+    if (exchangeType === 'okx' && !creds.passphrase) {
+      toast.error('OKX requires a passphrase');
       return;
     }
 
     const wallet: ConnectedWallet = {
       id: Date.now().toString(),
-      type: 'okx-exchange',
-      name: 'OKX Exchange',
+      type: `${exchangeType}-exchange` as any,
+      category: 'trading',
+      name: `${exchangeType.toUpperCase()} Exchange`,
       address: 'Exchange Account',
       status: 'connected',
       lastSync: new Date().toISOString()
     };
 
     setConnectedWallets([...connectedWallets, wallet]);
-    setOkxCredentials({ apiKey: '', secret: '', passphrase: '' });
-    toast.success('OKX Exchange connected successfully!');
+    setExchangeCredentials({
+      ...exchangeCredentials,
+      [exchangeType]: { apiKey: '', secret: '', passphrase: '' }
+    });
+    toast.success(`${exchangeType.toUpperCase()} Exchange connected for portfolio tracking!`);
   };
 
   const removeWallet = (id: string) => {
     setConnectedWallets(connectedWallets.filter(w => w.id !== id));
-    toast.success('Wallet removed');
+    toast.success('Wallet removed from tracking');
   };
 
   const syncWallet = (id: string) => {
@@ -116,15 +147,18 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
         : wallet
     ));
     
-    // Simulate sync process
     setTimeout(() => {
       setConnectedWallets(prev => prev.map(wallet => 
         wallet.id === id 
           ? { ...wallet, status: 'connected' as const }
           : wallet
       ));
-      toast.success('Wallet synced successfully');
+      toast.success('Portfolio data synced successfully');
     }, 2000);
+  };
+
+  const getWalletsByCategory = (category: 'cold' | 'hot' | 'trading') => {
+    return connectedWallets.filter(w => w.category === category);
   };
 
   const getWalletIcon = (type: string) => {
@@ -133,102 +167,398 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
       case 'trust': return '💎';
       case 'ledger': return '🔒';
       case 'okx-exchange': return '📈';
+      case 'binance': return '⚡';
+      case 'coinbase': return '🔵';
       default: return '💼';
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Overview */}
-      <Card>
+      {/* Header with Read-Only Notice */}
+      <Card className="border-blue-200 bg-blue-50">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Wallet className="w-5 h-5" />
-            <span>Wallet Connections</span>
+          <CardTitle className="flex items-center space-x-2 text-blue-800">
+            <Eye className="w-5 h-5" />
+            <span>Portfolio Tracking System</span>
           </CardTitle>
-          <CardDescription>
-            Connect your cold wallets, hot wallets, and exchange accounts to track your complete crypto portfolio
+          <CardDescription className="text-blue-700">
+            Connect your wallets and exchange accounts for <strong>read-only analysis</strong>. 
+            This platform tracks your holdings across all accounts to organize your investments and generate reports. 
+            No trades are executed through this website.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center">
+      </Card>
+
+      {/* Overview Stats */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div>
+              <div className="text-2xl font-bold">{getWalletsByCategory('cold').length}</div>
+              <div className="text-sm text-gray-600">Cold Storage</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{getWalletsByCategory('hot').length}</div>
+              <div className="text-sm text-gray-600">Hot Wallets</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{getWalletsByCategory('trading').length}</div>
+              <div className="text-sm text-gray-600">Trading Accounts</div>
+            </div>
+            <div>
               <div className="text-2xl font-bold">{connectedWallets.length}</div>
-              <div className="text-sm text-gray-600">Connected Wallets</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{connectedWallets.filter(w => w.status === 'connected').length}</div>
-              <div className="text-sm text-gray-600">Active Connections</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold">{connectedWallets.filter(w => w.type === 'okx-exchange').length}</div>
-              <div className="text-sm text-gray-600">Exchange Accounts</div>
+              <div className="text-sm text-gray-600">Total Connected</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Quick Connect Options */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={connectMetaMask}>
-          <CardContent className="pt-6 text-center">
-            <div className="text-4xl mb-2">🦊</div>
-            <h3 className="font-semibold">MetaMask</h3>
-            <p className="text-sm text-gray-600">Connect hot wallet</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="opacity-75">
-          <CardContent className="pt-6 text-center">
-            <div className="text-4xl mb-2">💎</div>
-            <h3 className="font-semibold">Trust Wallet</h3>
-            <p className="text-sm text-gray-600">Coming soon</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="opacity-75">
-          <CardContent className="pt-6 text-center">
-            <div className="text-4xl mb-2">🔒</div>
-            <h3 className="font-semibold">Ledger</h3>
-            <p className="text-sm text-gray-600">Coming soon</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="opacity-75">
-          <CardContent className="pt-6 text-center">
-            <div className="text-4xl mb-2">💼</div>
-            <h3 className="font-semibold">Manual</h3>
-            <p className="text-sm text-gray-600">Add address</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Wallet Categories */}
+      <Tabs defaultValue="cold" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="cold" className="flex items-center space-x-2">
+            <Shield className="w-4 h-4" />
+            <span>Cold Storage Wallets</span>
+          </TabsTrigger>
+          <TabsTrigger value="hot" className="flex items-center space-x-2">
+            <Wallet className="w-4 h-4" />
+            <span>Hot Wallets</span>
+          </TabsTrigger>
+          <TabsTrigger value="trading" className="flex items-center space-x-2">
+            <TrendingUp className="w-4 h-4" />
+            <span>Trading Accounts</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Cold Storage Tab */}
+        <TabsContent value="cold" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Shield className="w-5 h-5" />
+                <span>Cold Storage Wallets</span>
+              </CardTitle>
+              <CardDescription>
+                Connect your hardware wallets and cold storage addresses for portfolio tracking
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => connectMetaMask('cold')}>
+                  <CardContent className="pt-6 text-center">
+                    <div className="text-4xl mb-2">🔒</div>
+                    <h3 className="font-semibold">Connect Ledger</h3>
+                    <p className="text-sm text-gray-600">Via MetaMask</p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="opacity-75">
+                  <CardContent className="pt-6 text-center">
+                    <div className="text-4xl mb-2">❄️</div>
+                    <h3 className="font-semibold">Trezor</h3>
+                    <p className="text-sm text-gray-600">Coming soon</p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="opacity-75">
+                  <CardContent className="pt-6 text-center">
+                    <div className="text-4xl mb-2">🏦</div>
+                    <h3 className="font-semibold">Paper Wallet</h3>
+                    <p className="text-sm text-gray-600">Add manually</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Connected Cold Wallets */}
+              <div className="space-y-2">
+                {getWalletsByCategory('cold').map((wallet) => (
+                  <Card key={wallet.id}>
+                    <CardContent className="pt-4">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-3">
+                          <div className="text-2xl">{getWalletIcon(wallet.type)}</div>
+                          <div>
+                            <h3 className="font-semibold">{wallet.name}</h3>
+                            <p className="text-sm text-gray-600">{wallet.address}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline">Read-Only</Badge>
+                          <Button variant="outline" size="sm" onClick={() => syncWallet(wallet.id)}>
+                            Sync
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => removeWallet(wallet.id)}>
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Hot Wallets Tab */}
+        <TabsContent value="hot" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Wallet className="w-5 h-5" />
+                <span>Hot Wallets</span>
+              </CardTitle>
+              <CardDescription>
+                Connect your mobile and browser wallets for daily use tracking
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => connectMetaMask('hot')}>
+                  <CardContent className="pt-6 text-center">
+                    <div className="text-4xl mb-2">🦊</div>
+                    <h3 className="font-semibold">MetaMask</h3>
+                    <p className="text-sm text-gray-600">Browser wallet</p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="opacity-75">
+                  <CardContent className="pt-6 text-center">
+                    <div className="text-4xl mb-2">💎</div>
+                    <h3 className="font-semibold">Trust Wallet</h3>
+                    <p className="text-sm text-gray-600">Coming soon</p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="opacity-75">
+                  <CardContent className="pt-6 text-center">
+                    <div className="text-4xl mb-2">🌈</div>
+                    <h3 className="font-semibold">Rainbow</h3>
+                    <p className="text-sm text-gray-600">Coming soon</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Connected Hot Wallets */}
+              <div className="space-y-2">
+                {getWalletsByCategory('hot').map((wallet) => (
+                  <Card key={wallet.id}>
+                    <CardContent className="pt-4">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-3">
+                          <div className="text-2xl">{getWalletIcon(wallet.type)}</div>
+                          <div>
+                            <h3 className="font-semibold">{wallet.name}</h3>
+                            <p className="text-sm text-gray-600">{wallet.address}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline">Read-Only</Badge>
+                          <Button variant="outline" size="sm" onClick={() => syncWallet(wallet.id)}>
+                            Sync
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => removeWallet(wallet.id)}>
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Trading Accounts Tab */}
+        <TabsContent value="trading" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <TrendingUp className="w-5 h-5" />
+                <span>Trading Exchange Accounts</span>
+              </CardTitle>
+              <CardDescription>
+                Connect your exchange accounts for trading portfolio analysis
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Use <strong>read-only API keys</strong> for security. Your credentials are stored locally and used only for portfolio tracking.
+                </AlertDescription>
+              </Alert>
+
+              {/* OKX Exchange */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">OKX Exchange</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <Label>API Key</Label>
+                      <Input
+                        type="password"
+                        placeholder="Your OKX API Key"
+                        value={exchangeCredentials.okx.apiKey}
+                        onChange={(e) => setExchangeCredentials({
+                          ...exchangeCredentials,
+                          okx: { ...exchangeCredentials.okx, apiKey: e.target.value }
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Secret Key</Label>
+                      <Input
+                        type="password"
+                        placeholder="Secret Key"
+                        value={exchangeCredentials.okx.secret}
+                        onChange={(e) => setExchangeCredentials({
+                          ...exchangeCredentials,
+                          okx: { ...exchangeCredentials.okx, secret: e.target.value }
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Passphrase</Label>
+                      <Input
+                        type="password"
+                        placeholder="Passphrase"
+                        value={exchangeCredentials.okx.passphrase}
+                        onChange={(e) => setExchangeCredentials({
+                          ...exchangeCredentials,
+                          okx: { ...exchangeCredentials.okx, passphrase: e.target.value }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button onClick={() => connectExchange('okx')} className="w-full">
+                        Connect OKX
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Binance Exchange */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Binance Exchange</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label>API Key</Label>
+                      <Input
+                        type="password"
+                        placeholder="Your Binance API Key"
+                        value={exchangeCredentials.binance.apiKey}
+                        onChange={(e) => setExchangeCredentials({
+                          ...exchangeCredentials,
+                          binance: { ...exchangeCredentials.binance, apiKey: e.target.value }
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Secret Key</Label>
+                      <Input
+                        type="password"
+                        placeholder="Secret Key"
+                        value={exchangeCredentials.binance.secret}
+                        onChange={(e) => setExchangeCredentials({
+                          ...exchangeCredentials,
+                          binance: { ...exchangeCredentials.binance, secret: e.target.value }
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button onClick={() => connectExchange('binance')} className="w-full" disabled>
+                        Coming Soon
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Connected Trading Accounts */}
+              <div className="space-y-2">
+                {getWalletsByCategory('trading').map((wallet) => (
+                  <Card key={wallet.id}>
+                    <CardContent className="pt-4">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-3">
+                          <div className="text-2xl">{getWalletIcon(wallet.type)}</div>
+                          <div>
+                            <h3 className="font-semibold">{wallet.name}</h3>
+                            <p className="text-sm text-gray-600">Portfolio Tracking Only</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline">Read-Only</Badge>
+                          <Button variant="outline" size="sm" onClick={() => syncWallet(wallet.id)}>
+                            Sync
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => removeWallet(wallet.id)}>
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Manual Wallet Addition */}
       <Card>
         <CardHeader>
-          <CardTitle>Add Manual Wallet</CardTitle>
+          <CardTitle>Add Manual Wallet Address</CardTitle>
           <CardDescription>
-            Manually add a wallet address for tracking (view-only)
+            Add any wallet address manually for read-only portfolio tracking
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
-              <Label htmlFor="walletName">Wallet Name</Label>
+              <Label>Wallet Name</Label>
               <Input
-                id="walletName"
                 placeholder="My Cold Wallet"
                 value={manualWallet.name}
                 onChange={(e) => setManualWallet({...manualWallet, name: e.target.value})}
               />
             </div>
             <div>
-              <Label htmlFor="walletAddress">Wallet Address</Label>
+              <Label>Wallet Address</Label>
               <Input
-                id="walletAddress"
                 placeholder="0x..."
                 value={manualWallet.address}
                 onChange={(e) => setManualWallet({...manualWallet, address: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label>Category</Label>
+              <select 
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                value={manualWallet.category}
+                onChange={(e) => setManualWallet({...manualWallet, category: e.target.value as any})}
+              >
+                <option value="cold">Cold Storage</option>
+                <option value="hot">Hot Wallet</option>
+                <option value="trading">Trading</option>
+              </select>
+            </div>
+            <div>
+              <Label>Notes (Optional)</Label>
+              <Input
+                placeholder="Hardware wallet, etc."
+                value={manualWallet.notes}
+                onChange={(e) => setManualWallet({...manualWallet, notes: e.target.value})}
               />
             </div>
             <div className="flex items-end">
@@ -236,108 +566,6 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
                 Add Wallet
               </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* OKX Exchange Connection */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Connect OKX Exchange</CardTitle>
-          <CardDescription>
-            Connect your OKX exchange account for automated trading and portfolio sync
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Your OKX credentials are stored locally and never shared. Use read-only API keys when possible.
-            </AlertDescription>
-          </Alert>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <Label htmlFor="okxApiKey">API Key</Label>
-              <Input
-                id="okxApiKey"
-                type="password"
-                placeholder="Your OKX API Key"
-                value={okxCredentials.apiKey}
-                onChange={(e) => setOkxCredentials({...okxCredentials, apiKey: e.target.value})}
-              />
-            </div>
-            <div>
-              <Label htmlFor="okxSecret">Secret Key</Label>
-              <Input
-                id="okxSecret"
-                type="password"
-                placeholder="Your Secret Key"
-                value={okxCredentials.secret}
-                onChange={(e) => setOkxCredentials({...okxCredentials, secret: e.target.value})}
-              />
-            </div>
-            <div>
-              <Label htmlFor="okxPassphrase">Passphrase</Label>
-              <Input
-                id="okxPassphrase"
-                type="password"
-                placeholder="Your Passphrase"
-                value={okxCredentials.passphrase}
-                onChange={(e) => setOkxCredentials({...okxCredentials, passphrase: e.target.value})}
-              />
-            </div>
-            <div className="flex items-end">
-              <Button onClick={connectOKXExchange} className="w-full">
-                Connect OKX
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Connected Wallets */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Connected Wallets</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {connectedWallets.map((wallet) => (
-              <Card key={wallet.id}>
-                <CardContent className="pt-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center space-x-3">
-                      <div className="text-2xl">{getWalletIcon(wallet.type)}</div>
-                      <div>
-                        <h3 className="font-semibold">{wallet.name}</h3>
-                        <p className="text-sm text-gray-600">{wallet.address}</p>
-                        {wallet.lastSync && (
-                          <p className="text-xs text-gray-500">
-                            Last sync: {new Date(wallet.lastSync).toLocaleString()}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant={wallet.status === 'connected' ? 'default' : wallet.status === 'syncing' ? 'secondary' : 'destructive'}>
-                        {wallet.status === 'connected' && <CheckCircle className="w-3 h-3 mr-1" />}
-                        {wallet.status === 'syncing' && <RefreshCw className="w-3 h-3 mr-1 animate-spin" />}
-                        {wallet.status}
-                      </Badge>
-                      <Button variant="outline" size="sm" onClick={() => syncWallet(wallet.id)} disabled={wallet.status === 'syncing'}>
-                        Sync
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => removeWallet(wallet.id)}>
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            {connectedWallets.length === 0 && (
-              <p className="text-center text-gray-500 py-8">No wallets connected yet</p>
-            )}
           </div>
         </CardContent>
       </Card>
