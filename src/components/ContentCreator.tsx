@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Video, Upload, Play, Eye, ThumbsUp, MessageCircle } from "lucide-react";
+import { Video, Upload, Play, Eye, ThumbsUp, MessageCircle, Crown } from "lucide-react";
 import { toast } from "sonner";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import CategoryManager from "./CategoryManager";
 
 interface VideoContent {
   id: string;
@@ -15,7 +17,7 @@ interface VideoContent {
   description: string;
   videoUrl: string;
   thumbnail: string;
-  category: 'basics' | 'technical' | 'strategies' | 'market-analysis';
+  category: string;
   views: number;
   likes: number;
   comments: number;
@@ -23,6 +25,8 @@ interface VideoContent {
 }
 
 const ContentCreator = ({ currentUser }: { currentUser: string }) => {
+  const { isAdmin } = useAdminAccess(currentUser);
+  
   const [videos, setVideos] = useState<VideoContent[]>([
     {
       id: '1',
@@ -30,7 +34,7 @@ const ContentCreator = ({ currentUser }: { currentUser: string }) => {
       description: 'Learn the fundamentals of cryptocurrency trading, including how to read charts and understand market movements.',
       videoUrl: 'https://example.com/video1',
       thumbnail: '/placeholder.svg',
-      category: 'basics',
+      category: 'Trading Basics',
       views: 1250,
       likes: 89,
       comments: 23,
@@ -42,7 +46,7 @@ const ContentCreator = ({ currentUser }: { currentUser: string }) => {
       description: 'Master the most important technical indicators for successful crypto trading.',
       videoUrl: 'https://example.com/video2',
       thumbnail: '/placeholder.svg',
-      category: 'technical',
+      category: 'Technical Analysis',
       views: 856,
       likes: 67,
       comments: 15,
@@ -53,144 +57,240 @@ const ContentCreator = ({ currentUser }: { currentUser: string }) => {
   const [newVideo, setNewVideo] = useState({
     title: '',
     description: '',
-    category: 'basics' as 'basics' | 'technical' | 'strategies' | 'market-analysis',
+    category: 'Trading Basics',
     videoFile: null as File | null
   });
+
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Check file size (max 500MB)
+      const maxSize = 500 * 1024 * 1024; // 500MB in bytes
+      if (file.size > maxSize) {
+        toast.error("Video file must be smaller than 500MB");
+        return;
+      }
+
+      // Check file type
+      const allowedTypes = ['video/mp4', 'video/mov', 'video/avi', 'video/webm'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error("Please upload a valid video file (MP4, MOV, AVI, WebM)");
+        return;
+      }
+
       setNewVideo({ ...newVideo, videoFile: file });
-      toast.success("Video file selected");
+      toast.success(`Video file selected: ${file.name}`);
     }
   };
 
-  const uploadVideo = () => {
+  const simulateUpload = (): Promise<string> => {
+    return new Promise((resolve) => {
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(interval);
+          setUploadProgress(100);
+          setTimeout(() => {
+            setUploadProgress(0);
+            setIsUploading(false);
+            resolve(URL.createObjectURL(newVideo.videoFile!));
+          }, 500);
+        } else {
+          setUploadProgress(progress);
+        }
+      }, 200);
+    });
+  };
+
+  const uploadVideo = async () => {
+    if (!isAdmin) {
+      toast.error("Only administrators can upload videos");
+      return;
+    }
+
     if (!newVideo.title || !newVideo.description || !newVideo.videoFile) {
       toast.error("Please fill all fields and select a video file");
       return;
     }
 
-    const video: VideoContent = {
-      id: Date.now().toString(),
-      title: newVideo.title,
-      description: newVideo.description,
-      videoUrl: URL.createObjectURL(newVideo.videoFile),
-      thumbnail: '/placeholder.svg',
-      category: newVideo.category,
-      views: 0,
-      likes: 0,
-      comments: 0,
-      uploadDate: new Date().toISOString().split('T')[0]
-    };
+    setIsUploading(true);
+    toast.info("Uploading video...");
 
-    setVideos([video, ...videos]);
-    setNewVideo({
-      title: '',
-      description: '',
-      category: 'basics',
-      videoFile: null
-    });
+    try {
+      const videoUrl = await simulateUpload();
+      
+      const video: VideoContent = {
+        id: Date.now().toString(),
+        title: newVideo.title,
+        description: newVideo.description,
+        videoUrl: videoUrl,
+        thumbnail: '/placeholder.svg',
+        category: newVideo.category,
+        views: 0,
+        likes: 0,
+        comments: 0,
+        uploadDate: new Date().toISOString().split('T')[0]
+      };
 
-    toast.success("Video uploaded successfully!");
+      setVideos([video, ...videos]);
+      setNewVideo({
+        title: '',
+        description: '',
+        category: 'Trading Basics',
+        videoFile: null
+      });
+
+      // Reset file input
+      const fileInput = document.getElementById('videoFile') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+
+      toast.success("Video uploaded successfully!");
+    } catch (error) {
+      toast.error("Failed to upload video. Please try again.");
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'basics': return 'bg-blue-100 text-blue-800';
-      case 'technical': return 'bg-green-100 text-green-800';
-      case 'strategies': return 'bg-purple-100 text-purple-800';
-      case 'market-analysis': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getCategoryLabel = (category: string) => {
-    switch (category) {
-      case 'basics': return 'Trading Basics';
-      case 'technical': return 'Technical Analysis';
-      case 'strategies': return 'Trading Strategies';
-      case 'market-analysis': return 'Market Analysis';
-      default: return category;
-    }
+    const colorMap: { [key: string]: string } = {
+      'Trading Basics': 'bg-blue-100 text-blue-800',
+      'Technical Analysis': 'bg-green-100 text-green-800',
+      'Trading Strategies': 'bg-purple-100 text-purple-800',
+      'Market Analysis': 'bg-orange-100 text-orange-800'
+    };
+    return colorMap[category] || 'bg-gray-100 text-gray-800';
   };
 
   return (
     <div className="space-y-6">
+      {/* Admin Badge */}
+      {isAdmin && (
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardContent className="pt-4">
+            <div className="flex items-center space-x-2 text-yellow-800">
+              <Crown className="w-5 h-5" />
+              <span className="font-semibold">Administrator Access</span>
+              <Badge className="bg-yellow-500 text-white">Admin</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Category Management - Admin Only */}
+      {isAdmin && (
+        <CategoryManager currentUser={currentUser} />
+      )}
+
       {/* Upload Section */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Upload className="w-5 h-5" />
             <span>Upload Educational Content</span>
+            {!isAdmin && <Badge variant="outline">Admin Only</Badge>}
           </CardTitle>
           <CardDescription>
-            Share your trading knowledge and help others learn cryptocurrency trading
+            {isAdmin 
+              ? "Share your trading knowledge and help others learn cryptocurrency trading"
+              : "Only administrators can upload content. Contact an admin for access."
+            }
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="videoTitle">Video Title</Label>
-              <Input
-                id="videoTitle"
-                placeholder="e.g., How to Trade Bitcoin Safely"
-                value={newVideo.title}
-                onChange={(e) => setNewVideo({ ...newVideo, title: e.target.value })}
-              />
+          {!isAdmin && (
+            <div className="p-4 bg-gray-100 rounded-lg text-center text-gray-600">
+              <Video className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+              <p>Video upload is restricted to administrators</p>
             </div>
-            <div>
-              <Label htmlFor="category">Category</Label>
-              <select
-                id="category"
-                className="w-full p-2 border rounded-md"
-                value={newVideo.category}
-                onChange={(e) => setNewVideo({ ...newVideo, category: e.target.value as any })}
-              >
-                <option value="basics">Trading Basics</option>
-                <option value="technical">Technical Analysis</option>
-                <option value="strategies">Trading Strategies</option>
-                <option value="market-analysis">Market Analysis</option>
-              </select>
-            </div>
-          </div>
-          
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              placeholder="Describe what viewers will learn from this video..."
-              value={newVideo.description}
-              onChange={(e) => setNewVideo({ ...newVideo, description: e.target.value })}
-              rows={3}
-            />
-          </div>
+          )}
 
-          <div>
-            <Label htmlFor="videoFile">Upload Video</Label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <input
-                type="file"
-                id="videoFile"
-                accept="video/*"
-                onChange={handleVideoUpload}
-                className="hidden"
-              />
-              <label htmlFor="videoFile" className="cursor-pointer">
-                <Video className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-                <p className="text-gray-600">Click to upload video or drag and drop</p>
-                <p className="text-sm text-gray-500">MP4, MOV, AVI (max 500MB)</p>
-              </label>
-              {newVideo.videoFile && (
-                <p className="mt-2 text-green-600">Selected: {newVideo.videoFile.name}</p>
-              )}
-            </div>
-          </div>
+          {isAdmin && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="videoTitle">Video Title</Label>
+                  <Input
+                    id="videoTitle"
+                    placeholder="e.g., How to Trade Bitcoin Safely"
+                    value={newVideo.title}
+                    onChange={(e) => setNewVideo({ ...newVideo, title: e.target.value })}
+                    disabled={isUploading}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="category">Category</Label>
+                  <select
+                    id="category"
+                    className="w-full p-2 border rounded-md"
+                    value={newVideo.category}
+                    onChange={(e) => setNewVideo({ ...newVideo, category: e.target.value })}
+                    disabled={isUploading}
+                  >
+                    <option value="Trading Basics">Trading Basics</option>
+                    <option value="Technical Analysis">Technical Analysis</option>
+                    <option value="Trading Strategies">Trading Strategies</option>
+                    <option value="Market Analysis">Market Analysis</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Describe what viewers will learn from this video..."
+                  value={newVideo.description}
+                  onChange={(e) => setNewVideo({ ...newVideo, description: e.target.value })}
+                  rows={3}
+                  disabled={isUploading}
+                />
+              </div>
 
-          <Button onClick={uploadVideo} className="w-full">
-            <Upload className="w-4 h-4 mr-2" />
-            Upload Video
-          </Button>
+              <div>
+                <Label htmlFor="videoFile">Upload Video</Label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <input
+                    type="file"
+                    id="videoFile"
+                    accept="video/mp4,video/mov,video/avi,video/webm"
+                    onChange={handleVideoUpload}
+                    className="hidden"
+                    disabled={isUploading}
+                  />
+                  <label htmlFor="videoFile" className={`cursor-pointer ${isUploading ? 'pointer-events-none' : ''}`}>
+                    <Video className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+                    <p className="text-gray-600">Click to upload video or drag and drop</p>
+                    <p className="text-sm text-gray-500">MP4, MOV, AVI, WebM (max 500MB)</p>
+                  </label>
+                  {newVideo.videoFile && (
+                    <p className="mt-2 text-green-600">Selected: {newVideo.videoFile.name}</p>
+                  )}
+                  {isUploading && (
+                    <div className="mt-4">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">Uploading... {Math.round(uploadProgress)}%</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <Button onClick={uploadVideo} className="w-full" disabled={isUploading}>
+                <Upload className="w-4 h-4 mr-2" />
+                {isUploading ? 'Uploading...' : 'Upload Video'}
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -217,7 +317,7 @@ const ContentCreator = ({ currentUser }: { currentUser: string }) => {
                     </Button>
                   </div>
                   <Badge className={`absolute top-2 left-2 ${getCategoryColor(video.category)}`}>
-                    {getCategoryLabel(video.category)}
+                    {video.category}
                   </Badge>
                 </div>
                 <CardContent className="p-4">

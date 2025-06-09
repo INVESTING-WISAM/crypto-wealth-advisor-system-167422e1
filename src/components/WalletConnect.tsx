@@ -6,14 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet, Eye, Shield, TrendingUp, AlertCircle, CheckCircle, RefreshCw } from "lucide-react";
+import { Wallet, Eye, Shield, TrendingUp, AlertCircle, CheckCircle, RefreshCw, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { testBybitConnection } from "@/services/bybitApi";
+import { testBybitConnection, getBybitSetupInstructions } from "@/services/bybitApi";
 
 interface ConnectedWallet {
   id: string;
-  type: 'metamask' | 'trust' | 'ledger' | 'manual' | 'okx-exchange' | 'binance' | 'coinbase' | 'bybit';
+  type: 'metamask' | 'trust' | 'ledger' | 'manual' | 'okx-exchange' | 'binance' | 'coinbase' | 'bybit' | 'binance-wallet';
   category: 'cold' | 'hot' | 'trading';
   name: string;
   address: string;
@@ -45,6 +45,9 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
     coinbase: { apiKey: '', secret: '', passphrase: '' },
     bybit: { apiKey: '', secret: '' }
   });
+
+  const [showBybitInstructions, setShowBybitInstructions] = useState(false);
+  const [bybitError, setBybitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (currentUser) {
@@ -86,6 +89,56 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
     }
   };
 
+  const connectTrustWallet = async (category: 'cold' | 'hot' | 'trading') => {
+    if (typeof window.ethereum !== 'undefined') {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (accounts.length > 0) {
+          const wallet: ConnectedWallet = {
+            id: Date.now().toString(),
+            type: 'trust',
+            category,
+            name: `Trust Wallet (${category.charAt(0).toUpperCase() + category.slice(1)})`,
+            address: accounts[0],
+            status: 'connected',
+            lastSync: new Date().toISOString()
+          };
+          setConnectedWallets([...connectedWallets, wallet]);
+          toast.success(`Trust Wallet ${category} wallet connected for read-only tracking!`);
+        }
+      } catch (error) {
+        toast.error('Failed to connect Trust Wallet');
+      }
+    } else {
+      toast.error('Trust Wallet is not installed or not available');
+    }
+  };
+
+  const connectBinanceWallet = async (category: 'cold' | 'hot' | 'trading') => {
+    if (typeof window.BinanceChain !== 'undefined') {
+      try {
+        const accounts = await window.BinanceChain.request({ method: 'eth_requestAccounts' });
+        if (accounts.length > 0) {
+          const wallet: ConnectedWallet = {
+            id: Date.now().toString(),
+            type: 'binance-wallet',
+            category,
+            name: `Binance Wallet (${category.charAt(0).toUpperCase() + category.slice(1)})`,
+            address: accounts[0],
+            status: 'connected',
+            lastSync: new Date().toISOString()
+          };
+          setConnectedWallets([...connectedWallets, wallet]);
+          toast.success(`Binance Wallet ${category} wallet connected for read-only tracking!`);
+        }
+      } catch (error) {
+        toast.error('Failed to connect Binance Wallet');
+      }
+    } else {
+      toast.error('Binance Wallet is not installed or not available');
+    }
+  };
+
   const addManualWallet = () => {
     if (!manualWallet.name || !manualWallet.address) {
       toast.error('Please fill in wallet name and address');
@@ -110,23 +163,25 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
 
   const connectExchange = async (exchangeType: 'okx' | 'binance' | 'coinbase' | 'bybit') => {
     const creds = exchangeCredentials[exchangeType];
+    setBybitError(null);
+
     if (!creds.apiKey) {
       toast.error(`Please fill in ${exchangeType.toUpperCase()} API key`);
       return;
     }
 
-    // Special handling for Bybit
     if (exchangeType === 'bybit') {
       if (!creds.secret) {
         toast.error('Bybit requires both API key and secret for authenticated access');
+        setBybitError('Both API Key and Secret are required for Bybit connection');
         return;
       }
 
       try {
         toast.info('Testing Bybit connection...');
-        const isConnected = await testBybitConnection(creds.apiKey, creds.secret);
+        const result = await testBybitConnection(creds.apiKey, creds.secret);
         
-        if (isConnected) {
+        if (result.success) {
           const wallet: ConnectedWallet = {
             id: Date.now().toString(),
             type: 'bybit',
@@ -139,17 +194,20 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
           };
 
           setConnectedWallets([...connectedWallets, wallet]);
+          setBybitError(null);
           toast.success('Bybit Exchange connected successfully! Your positions will be synced.');
         } else {
-          toast.error('Failed to connect to Bybit. Please check your API key and secret.');
+          setBybitError(result.error || 'Unknown error occurred');
+          toast.error(`Bybit connection failed: ${result.error}`);
           return;
         }
       } catch (error) {
-        toast.error('Bybit connection failed. Please verify your API credentials and permissions.');
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        setBybitError(errorMessage);
+        toast.error(`Bybit connection failed: ${errorMessage}`);
         return;
       }
     } else {
-      // Existing logic for other exchanges
       if (exchangeType === 'okx' && !creds.passphrase) {
         toast.error('OKX requires a passphrase');
         return;
@@ -212,6 +270,7 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
       case 'metamask': return '🦊';
       case 'trust': return '💎';
       case 'ledger': return '🔒';
+      case 'binance-wallet': return '🟨';
       case 'okx-exchange': return '📈';
       case 'binance': return '⚡';
       case 'coinbase': return '🔵';
@@ -219,6 +278,8 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
       default: return '💼';
     }
   };
+
+  const bybitInstructions = getBybitSetupInstructions();
 
   return (
     <div className="space-y-6">
@@ -361,7 +422,7 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => connectMetaMask('hot')}>
                   <CardContent className="pt-6 text-center">
                     <div className="text-4xl mb-2">🦊</div>
@@ -370,18 +431,26 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
                   </CardContent>
                 </Card>
                 
-                <Card className="opacity-75">
+                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => connectTrustWallet('hot')}>
                   <CardContent className="pt-6 text-center">
                     <div className="text-4xl mb-2">💎</div>
                     <h3 className="font-semibold">Trust Wallet</h3>
-                    <p className="text-sm text-gray-600">Coming soon</p>
+                    <p className="text-sm text-gray-600">Mobile wallet</p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => connectBinanceWallet('hot')}>
+                  <CardContent className="pt-6 text-center">
+                    <div className="text-4xl mb-2">🟨</div>
+                    <h3 className="font-semibold">Binance Wallet</h3>
+                    <p className="text-sm text-gray-600">Binance ecosystem</p>
                   </CardContent>
                 </Card>
                 
                 <Card className="opacity-75">
                   <CardContent className="pt-6 text-center">
-                    <div className="text-4xl mb-2">🌈</div>
-                    <h3 className="font-semibold">Rainbow</h3>
+                    <div className="text-4xl mb-2">🌐</div>
+                    <h3 className="font-semibold">WalletConnect</h3>
                     <p className="text-sm text-gray-600">Coming soon</p>
                   </CardContent>
                 </Card>
@@ -441,15 +510,56 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
               {/* Bybit Exchange */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg flex items-center space-x-2">
-                    <span className="text-2xl">🟡</span>
-                    <span>Bybit Exchange</span>
+                  <CardTitle className="text-lg flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl">🟡</span>
+                      <span>Bybit Exchange</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowBybitInstructions(!showBybitInstructions)}
+                    >
+                      <Info className="w-4 h-4 mr-2" />
+                      Setup Guide
+                    </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {showBybitInstructions && (
+                    <Alert className="mb-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <div className="space-y-2">
+                          <p className="font-semibold">{bybitInstructions.title}</p>
+                          <div className="text-sm">
+                            {bybitInstructions.steps.map((step, index) => (
+                              <p key={index}>{step}</p>
+                            ))}
+                          </div>
+                          <div className="mt-3">
+                            <p className="font-semibold text-red-600">Common Issues:</p>
+                            {bybitInstructions.commonErrors.map((error, index) => (
+                              <p key={index} className="text-sm">{error}</p>
+                            ))}
+                          </div>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {bybitError && (
+                    <Alert className="border-red-200 bg-red-50">
+                      <AlertCircle className="h-4 w-4 text-red-600" />
+                      <AlertDescription className="text-red-700">
+                        <strong>Connection Error:</strong> {bybitError}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <Label>API Key</Label>
+                      <Label>API Key *</Label>
                       <Input
                         type="text"
                         placeholder="Your Bybit API Key"
@@ -461,7 +571,7 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
                       />
                     </div>
                     <div>
-                      <Label>API Secret</Label>
+                      <Label>API Secret *</Label>
                       <Input
                         type="password"
                         placeholder="Your Bybit API Secret"
@@ -478,12 +588,6 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
                       </Button>
                     </div>
                   </div>
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Make sure your Bybit API key has "Position" read permissions and IP restrictions are disabled.
-                    </AlertDescription>
-                  </Alert>
                 </CardContent>
               </Card>
 

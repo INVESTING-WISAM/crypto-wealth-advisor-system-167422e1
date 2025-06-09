@@ -24,25 +24,71 @@ interface BybitResponse {
   };
 }
 
+interface BybitError {
+  retCode: number;
+  retMsg: string;
+}
+
 const generateSignature = (timestamp: string, apiKey: string, apiSecret: string, params: string = '') => {
-  const message = timestamp + apiKey + '5000' + params; // 5000 is recv_window
+  const message = timestamp + apiKey + '5000' + params;
   return CryptoJS.HmacSHA256(message, apiSecret).toString();
+};
+
+export const validateBybitCredentials = (apiKey: string, apiSecret: string): { valid: boolean; error?: string } => {
+  if (!apiKey || apiKey.length < 10) {
+    return { valid: false, error: 'API Key must be at least 10 characters long' };
+  }
+  
+  if (!apiSecret || apiSecret.length < 10) {
+    return { valid: false, error: 'API Secret must be at least 10 characters long' };
+  }
+
+  // Check if API key starts with expected pattern
+  if (!apiKey.match(/^[A-Za-z0-9]{20,}$/)) {
+    return { valid: false, error: 'Invalid API Key format. Please copy the complete key from Bybit.' };
+  }
+
+  return { valid: true };
+};
+
+export const getBybitSetupInstructions = () => {
+  return {
+    title: "Bybit API Setup Instructions",
+    steps: [
+      "1. Log into your Bybit account and go to Account & Security > API Management",
+      "2. Click 'Create New Key' and choose 'System-generated API Key'",
+      "3. Set permissions: Enable 'Read-only' and specifically 'Position' and 'Account' permissions",
+      "4. For IP restrictions: Either disable IP restrictions OR add your current IP",
+      "5. Copy both the API Key and Secret Key (you won't see the secret again!)",
+      "6. Make sure you're using Mainnet keys, not Testnet"
+    ],
+    commonErrors: [
+      "• IP restrictions enabled - Disable or add your IP to whitelist",
+      "• Missing permissions - Ensure 'Position' and 'Account' permissions are enabled",
+      "• Using Testnet keys - Switch to Mainnet keys for live trading data",
+      "• Invalid API format - Make sure to copy the complete key without spaces"
+    ]
+  };
 };
 
 export const fetchBybitPositions = async (apiKey: string, apiSecret: string = ''): Promise<{ [key: string]: { price: number; change24h: number; entryPrice: number; amount: number; pnl: number; takeProfit?: number; stopLoss?: number; side: string } }> => {
   try {
+    // Validate credentials first
+    const validation = validateBybitCredentials(apiKey, apiSecret);
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
+
     const timestamp = Date.now().toString();
     const params = 'category=linear';
     
-    // For demo purposes, if no secret is provided, we'll try without signature
-    let headers: any = {
+    const headers: any = {
       'X-BAPI-API-KEY': apiKey,
       'X-BAPI-TIMESTAMP': timestamp,
       'X-BAPI-RECV-WINDOW': '5000',
       'Content-Type': 'application/json',
     };
 
-    // Only add signature if we have an API secret
     if (apiSecret) {
       const signature = generateSignature(timestamp, apiKey, apiSecret, params);
       headers['X-BAPI-SIGN'] = signature;
@@ -54,29 +100,43 @@ export const fetchBybitPositions = async (apiKey: string, apiSecret: string = ''
     });
 
     if (!response.ok) {
-      throw new Error(`Bybit API error: ${response.status}`);
+      if (response.status === 403) {
+        throw new Error('Access denied. Please check your API permissions and IP restrictions.');
+      }
+      if (response.status === 401) {
+        throw new Error('Authentication failed. Please verify your API key and secret.');
+      }
+      throw new Error(`Bybit API error: ${response.status} - ${response.statusText}`);
     }
 
     const data: BybitResponse = await response.json();
     
     if (data.retCode !== 0) {
-      if (data.retCode === 10001) {
-        throw new Error('API authentication failed. Please check your API key and secret. Make sure your API key has position reading permissions and IP restrictions are disabled.');
-      }
-      throw new Error(`Bybit API error: ${data.retMsg}`);
+      const errorMessages: { [key: number]: string } = {
+        10001: 'API authentication failed. Please check your API key and secret.',
+        10002: 'Invalid API key format.',
+        10003: 'API key expired or disabled.',
+        10004: 'Invalid signature. Please check your API secret.',
+        10005: 'Permission denied. Enable Position reading permissions.',
+        10006: 'Too many requests. Please wait and try again.',
+        10007: 'IP not allowed. Disable IP restrictions or add your IP to whitelist.',
+        33004: 'API key does not have permission to access this endpoint.'
+      };
+      
+      const userFriendlyError = errorMessages[data.retCode] || `Bybit API error: ${data.retMsg}`;
+      throw new Error(userFriendlyError);
     }
 
     const result: { [key: string]: { price: number; change24h: number; entryPrice: number; amount: number; pnl: number; takeProfit?: number; stopLoss?: number; side: string } } = {};
     
     if (data.result && data.result.list) {
       data.result.list.forEach((position) => {
-        // Only include positions with size > 0
         if (parseFloat(position.size) > 0) {
           const symbol = position.symbol.replace('USDT', '');
           
           result[symbol] = {
             price: parseFloat(position.markPrice),
-            change24h: 0, // Bybit doesn't provide 24h change in position data
+            change24h: 0,
             entryPrice: parseFloat(position.entryPrice),
             amount: parseFloat(position.size),
             pnl: parseFloat(position.unrealisedPnl),
@@ -91,16 +151,22 @@ export const fetchBybitPositions = async (apiKey: string, apiSecret: string = ''
     return result;
   } catch (error) {
     console.error('Error fetching Bybit positions:', error);
-    throw error;
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Unknown error occurred while connecting to Bybit');
   }
 };
 
-export const testBybitConnection = async (apiKey: string, apiSecret: string = ''): Promise<boolean> => {
+export const testBybitConnection = async (apiKey: string, apiSecret: string = ''): Promise<{ success: boolean; error?: string }> => {
   try {
     await fetchBybitPositions(apiKey, apiSecret);
-    return true;
+    return { success: true };
   } catch (error) {
     console.error('Bybit connection test failed:', error);
-    return false;
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
   }
 };
