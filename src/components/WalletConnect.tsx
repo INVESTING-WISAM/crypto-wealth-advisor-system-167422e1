@@ -43,7 +43,7 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
     okx: { apiKey: '', secret: '', passphrase: '' },
     binance: { apiKey: '', secret: '' },
     coinbase: { apiKey: '', secret: '', passphrase: '' },
-    bybit: { apiKey: 'oQMWBgTBFI2WoTO3qy', secret: '' }
+    bybit: { apiKey: '', secret: '' }
   });
 
   useEffect(() => {
@@ -117,9 +117,14 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
 
     // Special handling for Bybit
     if (exchangeType === 'bybit') {
+      if (!creds.secret) {
+        toast.error('Bybit requires both API key and secret for authenticated access');
+        return;
+      }
+
       try {
         toast.info('Testing Bybit connection...');
-        const isConnected = await testBybitConnection(creds.apiKey);
+        const isConnected = await testBybitConnection(creds.apiKey, creds.secret);
         
         if (isConnected) {
           const wallet: ConnectedWallet = {
@@ -136,11 +141,11 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
           setConnectedWallets([...connectedWallets, wallet]);
           toast.success('Bybit Exchange connected successfully! Your positions will be synced.');
         } else {
-          toast.error('Failed to connect to Bybit. Please check your API key.');
+          toast.error('Failed to connect to Bybit. Please check your API key and secret.');
           return;
         }
       } catch (error) {
-        toast.error('Bybit connection failed. Please verify your API key has the correct permissions.');
+        toast.error('Bybit connection failed. Please verify your API credentials and permissions.');
         return;
       }
     } else {
@@ -442,7 +447,7 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <Label>API Key</Label>
                       <Input
@@ -455,12 +460,30 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
                         })}
                       />
                     </div>
+                    <div>
+                      <Label>API Secret</Label>
+                      <Input
+                        type="password"
+                        placeholder="Your Bybit API Secret"
+                        value={exchangeCredentials.bybit.secret}
+                        onChange={(e) => setExchangeCredentials({
+                          ...exchangeCredentials,
+                          bybit: { ...exchangeCredentials.bybit, secret: e.target.value }
+                        })}
+                      />
+                    </div>
                     <div className="flex items-end">
                       <Button onClick={() => connectExchange('bybit')} className="w-full">
                         Connect Bybit
                       </Button>
                     </div>
                   </div>
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Make sure your Bybit API key has "Position" read permissions and IP restrictions are disabled.
+                    </AlertDescription>
+                  </Alert>
                 </CardContent>
               </Card>
 

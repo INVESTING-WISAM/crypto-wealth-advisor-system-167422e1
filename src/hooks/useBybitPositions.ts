@@ -14,7 +14,7 @@ interface BybitPositionData {
   side: string;
 }
 
-export const useBybitPositions = (apiKey: string | null, intervalMs: number = 30000) => {
+export const useBybitPositions = (apiKey: string | null, apiSecret: string = '', intervalMs: number = 30000) => {
   const [positions, setPositions] = useState<{ [key: string]: BybitPositionData }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -27,12 +27,14 @@ export const useBybitPositions = (apiKey: string | null, intervalMs: number = 30
     setError(null);
     
     try {
-      const newPositions = await fetchBybitPositions(apiKey);
+      const newPositions = await fetchBybitPositions(apiKey, apiSecret);
       setPositions(newPositions);
       setLastUpdated(new Date());
       
       if (Object.keys(newPositions).length > 0) {
         toast.success(`Updated ${Object.keys(newPositions).length} Bybit positions`);
+      } else {
+        toast.info('Connected to Bybit successfully - no open positions found');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch Bybit positions';
@@ -42,7 +44,7 @@ export const useBybitPositions = (apiKey: string | null, intervalMs: number = 30
     } finally {
       setIsLoading(false);
     }
-  }, [apiKey]);
+  }, [apiKey, apiSecret]);
 
   useEffect(() => {
     if (!apiKey) return;
