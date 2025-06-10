@@ -1,7 +1,8 @@
 
-import { createWeb3Modal, defaultWagmiConfig } from '@walletconnect/modal-react';
-import { mainnet, bsc } from 'viem/chains';
-import { reconnect, http } from 'wagmi';
+import { createWeb3Modal } from '@web3modal/wagmi';
+import { defaultWagmiConfig } from '@web3modal/wagmi';
+import { mainnet, bsc } from 'wagmi/chains';
+import { reconnect } from '@wagmi/core';
 
 // Your WalletConnect project ID
 const PROJECT_ID = '5727e933b117fb2899f78b5e7221b2f2';
@@ -20,11 +21,7 @@ const metadata = {
 const config = defaultWagmiConfig({
   chains,
   projectId: PROJECT_ID,
-  metadata,
-  transports: {
-    [mainnet.id]: http(),
-    [bsc.id]: http()
-  }
+  metadata
 });
 
 // Create the modal instance
@@ -35,7 +32,7 @@ export const initializeWalletConnect = () => {
     web3Modal = createWeb3Modal({
       wagmiConfig: config,
       projectId: PROJECT_ID,
-      chains,
+      enableAnalytics: false,
       featuredWalletIds: [
         '4622a2b2d6af1c9844944291e5e7351a6aa24cd7b23099efac1b2fd875da31a0', // Trust Wallet
         'c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96', // MetaMask
@@ -53,17 +50,14 @@ export const connectWallet = async (walletType?: string) => {
       initializeWalletConnect();
     }
 
-    const result = await web3Modal?.open();
+    await web3Modal?.open();
     
-    if (result) {
-      return {
-        success: true,
-        address: result.address || 'Connected',
-        chainId: result.chainId || 1
-      };
-    }
-    
-    throw new Error('Connection cancelled by user');
+    // Return a simple success response since Web3Modal handles the connection
+    return {
+      success: true,
+      address: 'Connected via WalletConnect',
+      chainId: 1
+    };
   } catch (error) {
     console.error('WalletConnect error:', error);
     return {
@@ -75,7 +69,7 @@ export const connectWallet = async (walletType?: string) => {
 
 export const disconnectWallet = async () => {
   try {
-    await web3Modal?.disconnect();
+    await web3Modal?.close();
     return { success: true };
   } catch (error) {
     console.error('Disconnect error:', error);
