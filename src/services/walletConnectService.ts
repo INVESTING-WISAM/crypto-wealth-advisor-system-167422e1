@@ -1,27 +1,13 @@
 
-import { Web3Modal } from '@walletconnect/modal';
-import { createWeb3Modal, defaultConfig } from '@walletconnect/modal/react';
+import { createWeb3Modal, defaultWagmiConfig } from '@walletconnect/modal-react';
+import { mainnet, bsc } from 'viem/chains';
+import { reconnect, http } from 'wagmi';
 
-// WalletConnect project ID - you'll need to get this from https://cloud.walletconnect.com
-const PROJECT_ID = 'YOUR_WALLETCONNECT_PROJECT_ID';
+// Your WalletConnect project ID
+const PROJECT_ID = '5727e933b117fb2899f78b5e7221b2f2';
 
 // Define the chains you want to support
-const chains = [
-  {
-    chainId: 1,
-    name: 'Ethereum',
-    currency: 'ETH',
-    explorerUrl: 'https://etherscan.io',
-    rpcUrl: 'https://cloudflare-eth.com'
-  },
-  {
-    chainId: 56,
-    name: 'BNB Smart Chain',
-    currency: 'BNB',
-    explorerUrl: 'https://bscscan.com',
-    rpcUrl: 'https://bsc-dataseed.binance.org'
-  }
-];
+const chains = [mainnet, bsc] as const;
 
 // Configure the modal
 const metadata = {
@@ -31,17 +17,18 @@ const metadata = {
   icons: [`${window.location.origin}/favicon.ico`]
 };
 
-const config = defaultConfig({
+const config = defaultWagmiConfig({
+  chains,
+  projectId: PROJECT_ID,
   metadata,
-  enableCoinbase: true,
-  enableInjected: true,
-  enableEIP6963: true,
-  rpcUrl: 'https://cloudflare-eth.com',
-  defaultChainId: 1
+  transports: {
+    [mainnet.id]: http(),
+    [bsc.id]: http()
+  }
 });
 
 // Create the modal instance
-let web3Modal: Web3Modal | null = null;
+let web3Modal: any = null;
 
 export const initializeWalletConnect = () => {
   if (!web3Modal) {
@@ -71,8 +58,8 @@ export const connectWallet = async (walletType?: string) => {
     if (result) {
       return {
         success: true,
-        address: result.address,
-        chainId: result.chainId
+        address: result.address || 'Connected',
+        chainId: result.chainId || 1
       };
     }
     
