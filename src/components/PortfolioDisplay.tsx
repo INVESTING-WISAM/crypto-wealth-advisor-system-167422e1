@@ -1,12 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Wallet, TrendingUp, TrendingDown, RefreshCw, DollarSign, Wifi, WifiOff } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, RefreshCw, DollarSign } from "lucide-react";
 import { toast } from "sonner";
-import { useLivePrices } from "@/hooks/useLivePrices";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PortfolioDisplayProps {
   portfolioData: any;
@@ -25,10 +24,8 @@ const mockPrices: { [key: string]: { price: number; change24h: number } } = {
 };
 
 const PortfolioDisplay: React.FC<PortfolioDisplayProps> = ({ portfolioData }) => {
-  // Get tokens from portfolio data
-  const portfolioTokens = portfolioData?.allocation ? Object.keys(portfolioData.allocation) : [];
-  
-  const { prices, isLoading, lastUpdated, error, updatePrices } = useLivePrices(portfolioTokens);
+  const [prices, setPrices] = useState(mockPrices);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -42,6 +39,21 @@ const PortfolioDisplay: React.FC<PortfolioDisplayProps> = ({ portfolioData }) =>
   const formatPercentage = (percentage: number) => {
     const sign = percentage >= 0 ? '+' : '';
     return `${sign}${percentage.toFixed(2)}%`;
+  };
+
+  const refreshPrices = () => {
+    // Simulate price updates with small random changes
+    const updatedPrices = { ...prices };
+    Object.keys(updatedPrices).forEach(token => {
+      const change = (Math.random() - 0.5) * 2; // Random change between -1% and +1%
+      updatedPrices[token] = {
+        ...updatedPrices[token],
+        change24h: updatedPrices[token].change24h + change
+      };
+    });
+    setPrices(updatedPrices);
+    setLastUpdated(new Date());
+    toast.success('Portfolio prices refreshed');
   };
 
   const calculatePortfolioValue = () => {
@@ -87,37 +99,23 @@ const PortfolioDisplay: React.FC<PortfolioDisplayProps> = ({ portfolioData }) =>
 
   return (
     <div className="space-y-6">
-      {/* Live Price Status */}
+      {/* Price Status */}
       <Card>
         <CardContent className="pt-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              {error ? (
-                <WifiOff className="w-5 h-5 text-red-500" />
-              ) : (
-                <Wifi className="w-5 h-5 text-green-500" />
-              )}
-              <span className="text-sm">
-                {error ? 'Price feed disconnected' : 'Live prices from OKX'}
-              </span>
+              <span className="text-sm">Mock price data for demonstration</span>
               {lastUpdated && (
                 <span className="text-xs text-gray-500">
                   Last updated: {lastUpdated.toLocaleTimeString()}
                 </span>
               )}
             </div>
-            <Button variant="outline" size="sm" onClick={updatePrices} disabled={isLoading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <Button variant="outline" size="sm" onClick={refreshPrices}>
+              <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Prices
             </Button>
           </div>
-          {error && (
-            <Alert className="mt-2">
-              <AlertDescription>
-                {error}. Showing last known prices.
-              </AlertDescription>
-            </Alert>
-          )}
         </CardContent>
       </Card>
 

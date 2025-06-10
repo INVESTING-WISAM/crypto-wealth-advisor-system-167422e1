@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,15 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet, Eye, Shield, TrendingUp, AlertCircle, Info, QrCode } from "lucide-react";
+import { Wallet, Eye, Shield, TrendingUp, QrCode } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { testBybitConnection, getBybitSetupInstructions } from "@/services/bybitApi";
 import WalletConnectModal from "./WalletConnectModal";
 
 interface ConnectedWallet {
   id: string;
-  type: 'metamask' | 'trust' | 'ledger' | 'manual' | 'okx-exchange' | 'binance' | 'coinbase' | 'bybit' | 'binance-wallet' | string;
+  type: 'metamask' | 'trust' | 'ledger' | 'manual' | 'binance-wallet' | string;
   category: 'cold' | 'hot' | 'trading';
   name: string;
   address: string;
@@ -21,14 +21,6 @@ interface ConnectedWallet {
   status: 'connected' | 'disconnected' | 'syncing';
   lastSync?: string;
   notes?: string;
-  apiKey?: string;
-}
-
-interface ExchangeCredentials {
-  apiKey: string;
-  secret: string;
-  passphrase?: string;
-  sandbox?: boolean;
 }
 
 const WalletConnect = ({ currentUser }: { currentUser: string }) => {
@@ -39,15 +31,6 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
     category: 'cold' as 'cold' | 'hot' | 'trading',
     notes: ''
   });
-  const [exchangeCredentials, setExchangeCredentials] = useState<{[key: string]: ExchangeCredentials}>({
-    okx: { apiKey: '', secret: '', passphrase: '' },
-    binance: { apiKey: '', secret: '' },
-    coinbase: { apiKey: '', secret: '', passphrase: '' },
-    bybit: { apiKey: '', secret: '' }
-  });
-
-  const [showBybitInstructions, setShowBybitInstructions] = useState(false);
-  const [bybitError, setBybitError] = useState<string | null>(null);
 
   const [isWalletConnectModalOpen, setIsWalletConnectModalOpen] = useState(false);
   const [connectingCategory, setConnectingCategory] = useState<'cold' | 'hot' | 'trading'>('cold');
@@ -95,9 +78,7 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
 
   const connectTrustWallet = async (category: 'cold' | 'hot' | 'trading') => {
     try {
-      // Trust Wallet uses the same ethereum provider as MetaMask when used as browser extension
       if (typeof window.ethereum !== 'undefined') {
-        // Check if it's Trust Wallet specifically
         const isTrustWallet = window.ethereum.isTrust || window.ethereum.isTrustWallet;
         
         if (!isTrustWallet) {
@@ -130,7 +111,6 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
 
   const connectBinanceWallet = async (category: 'cold' | 'hot' | 'trading') => {
     try {
-      // Check for Binance Chain Wallet
       if (typeof window.BinanceChain !== 'undefined') {
         const accounts = await window.BinanceChain.request({ method: 'eth_requestAccounts' });
         if (accounts.length > 0) {
@@ -147,7 +127,6 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
           toast.success(`Binance Wallet ${category} wallet connected for read-only tracking!`);
         }
       } else if (typeof window.ethereum !== 'undefined' && window.ethereum.isBinance) {
-        // Fallback for Binance Wallet using ethereum provider
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         if (accounts.length > 0) {
           const wallet: ConnectedWallet = {
@@ -193,87 +172,6 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
     toast.success('Wallet added for portfolio tracking!');
   };
 
-  const connectExchange = async (exchangeType: 'okx' | 'binance' | 'coinbase' | 'bybit') => {
-    const creds = exchangeCredentials[exchangeType];
-    setBybitError(null);
-
-    if (!creds.apiKey || !creds.apiKey.trim()) {
-      toast.error(`Please enter your ${exchangeType.toUpperCase()} API key`);
-      return;
-    }
-
-    if (exchangeType === 'bybit') {
-      if (!creds.secret || !creds.secret.trim()) {
-        toast.error('Bybit requires both API key and secret for connection');
-        setBybitError('Both API Key and Secret are required for Bybit connection');
-        return;
-      }
-
-      try {
-        toast.info('Testing Bybit connection... This may take a moment.');
-        console.log('Attempting Bybit connection with API key:', creds.apiKey.substring(0, 8) + '...');
-        
-        const result = await testBybitConnection(creds.apiKey.trim(), creds.secret.trim());
-        
-        if (result.success) {
-          const wallet: ConnectedWallet = {
-            id: Date.now().toString(),
-            type: 'bybit',
-            category: 'trading',
-            name: 'Bybit Exchange',
-            address: 'Exchange Account',
-            status: 'connected',
-            lastSync: new Date().toISOString(),
-            apiKey: creds.apiKey.trim()
-          };
-
-          setConnectedWallets([...connectedWallets, wallet]);
-          setBybitError(null);
-          toast.success('Bybit Exchange connected successfully! Your positions will be synced automatically.');
-          
-          // Clear credentials after successful connection
-          setExchangeCredentials({
-            ...exchangeCredentials,
-            bybit: { apiKey: '', secret: '' }
-          });
-        } else {
-          const errorMsg = result.error || 'Failed to connect to Bybit. Please check your credentials.';
-          setBybitError(errorMsg);
-          toast.error(`Bybit connection failed: ${errorMsg}`);
-          console.error('Bybit connection failed:', result.error);
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred while connecting to Bybit';
-        setBybitError(errorMessage);
-        toast.error(`Bybit connection failed: ${errorMessage}`);
-        console.error('Bybit connection error:', error);
-      }
-    } else {
-      if (exchangeType === 'okx' && !creds.passphrase) {
-        toast.error('OKX requires a passphrase');
-        return;
-      }
-
-      if (exchangeType !== 'okx' && !creds.secret) {
-        toast.error(`Please fill in ${exchangeType.toUpperCase()} secret key`);
-        return;
-      }
-
-      const wallet: ConnectedWallet = {
-        id: Date.now().toString(),
-        type: `${exchangeType}-exchange` as any,
-        category: 'trading',
-        name: `${exchangeType.toUpperCase()} Exchange`,
-        address: 'Exchange Account',
-        status: 'connected',
-        lastSync: new Date().toISOString()
-      };
-
-      setConnectedWallets([...connectedWallets, wallet]);
-      toast.success(`${exchangeType.toUpperCase()} Exchange connected for portfolio tracking!`);
-    }
-  };
-
   const removeWallet = (id: string) => {
     setConnectedWallets(connectedWallets.filter(w => w.id !== id));
     toast.success('Wallet removed from tracking');
@@ -306,15 +204,9 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
       case 'trust': return '💎';
       case 'ledger': return '🔒';
       case 'binance-wallet': return '🟨';
-      case 'okx-exchange': return '📈';
-      case 'binance': return '⚡';
-      case 'coinbase': return '🔵';
-      case 'bybit': return '🟡';
       default: return '💼';
     }
   };
-
-  const bybitInstructions = getBybitSetupInstructions();
 
   const openWalletConnectModal = (category: 'cold' | 'hot' | 'trading') => {
     setConnectingCategory(category);
@@ -345,7 +237,7 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
             <span>Portfolio Tracking System</span>
           </CardTitle>
           <CardDescription className="text-blue-700">
-            Connect your wallets and exchange accounts for <strong>read-only analysis</strong>. 
+            Connect your wallets for <strong>read-only analysis</strong>. 
             This platform tracks your holdings across all accounts to organize your investments and generate reports. 
             No trades are executed through this website.
           </CardDescription>
@@ -406,7 +298,6 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* WalletConnect Integration Notice */}
               <Alert className="border-green-200 bg-green-50">
                 <QrCode className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-green-700">
@@ -482,7 +373,6 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* WalletConnect Integration Notice */}
               <Alert className="border-blue-200 bg-blue-50">
                 <QrCode className="h-4 w-4 text-blue-600" />
                 <AlertDescription className="text-blue-700">
@@ -551,195 +441,18 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <TrendingUp className="w-5 h-5" />
-                <span>Trading Exchange Accounts</span>
+                <span>Trading Accounts</span>
               </CardTitle>
               <CardDescription>
-                Connect your exchange accounts for trading portfolio analysis
+                Connect your trading accounts for portfolio analysis
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <Alert>
-                <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Use <strong>read-only API keys</strong> for security. Your credentials are stored locally and used only for portfolio tracking.
+                  Trading account integrations have been simplified. Use the manual wallet addition feature below to track your trading addresses.
                 </AlertDescription>
               </Alert>
-
-              {/* Bybit Exchange */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-2xl">🟡</span>
-                      <span>Bybit Exchange</span>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowBybitInstructions(!showBybitInstructions)}
-                    >
-                      <Info className="w-4 h-4 mr-2" />
-                      Setup Guide
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {showBybitInstructions && (
-                    <Alert className="mb-4">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        <div className="space-y-2">
-                          <p className="font-semibold">{bybitInstructions.title}</p>
-                          <div className="text-sm">
-                            {bybitInstructions.steps.map((step, index) => (
-                              <p key={index}>{step}</p>
-                            ))}
-                          </div>
-                          <div className="mt-3">
-                            <p className="font-semibold text-red-600">Common Issues:</p>
-                            {bybitInstructions.commonErrors.map((error, index) => (
-                              <p key={index} className="text-sm">{error}</p>
-                            ))}
-                          </div>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  {bybitError && (
-                    <Alert className="border-red-200 bg-red-50">
-                      <AlertCircle className="h-4 w-4 text-red-600" />
-                      <AlertDescription className="text-red-700">
-                        <strong>Connection Error:</strong> {bybitError}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label>API Key *</Label>
-                      <Input
-                        type="text"
-                        placeholder="Your Bybit API Key"
-                        value={exchangeCredentials.bybit.apiKey}
-                        onChange={(e) => setExchangeCredentials({
-                          ...exchangeCredentials,
-                          bybit: { ...exchangeCredentials.bybit, apiKey: e.target.value }
-                        })}
-                      />
-                    </div>
-                    <div>
-                      <Label>API Secret *</Label>
-                      <Input
-                        type="password"
-                        placeholder="Your Bybit API Secret"
-                        value={exchangeCredentials.bybit.secret}
-                        onChange={(e) => setExchangeCredentials({
-                          ...exchangeCredentials,
-                          bybit: { ...exchangeCredentials.bybit, secret: e.target.value }
-                        })}
-                      />
-                    </div>
-                    <div className="flex items-end">
-                      <Button onClick={() => connectExchange('bybit')} className="w-full">
-                        Connect Bybit
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* OKX Exchange */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">OKX Exchange</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <Label>API Key</Label>
-                      <Input
-                        type="password"
-                        placeholder="Your OKX API Key"
-                        value={exchangeCredentials.okx.apiKey}
-                        onChange={(e) => setExchangeCredentials({
-                          ...exchangeCredentials,
-                          okx: { ...exchangeCredentials.okx, apiKey: e.target.value }
-                        })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Secret Key</Label>
-                      <Input
-                        type="password"
-                        placeholder="Secret Key"
-                        value={exchangeCredentials.okx.secret}
-                        onChange={(e) => setExchangeCredentials({
-                          ...exchangeCredentials,
-                          okx: { ...exchangeCredentials.okx, secret: e.target.value }
-                        })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Passphrase</Label>
-                      <Input
-                        type="password"
-                        placeholder="Passphrase"
-                        value={exchangeCredentials.okx.passphrase}
-                        onChange={(e) => setExchangeCredentials({
-                          ...exchangeCredentials,
-                          okx: { ...exchangeCredentials.okx, passphrase: e.target.value }
-                        })}
-                      />
-                    </div>
-                    <div className="flex items-end">
-                      <Button onClick={() => connectExchange('okx')} className="w-full">
-                        Connect OKX
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Binance Exchange */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Binance Exchange</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label>API Key</Label>
-                      <Input
-                        type="password"
-                        placeholder="Your Binance API Key"
-                        value={exchangeCredentials.binance.apiKey}
-                        onChange={(e) => setExchangeCredentials({
-                          ...exchangeCredentials,
-                          binance: { ...exchangeCredentials.binance, apiKey: e.target.value }
-                        })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Secret Key</Label>
-                      <Input
-                        type="password"
-                        placeholder="Secret Key"
-                        value={exchangeCredentials.binance.secret}
-                        onChange={(e) => setExchangeCredentials({
-                          ...exchangeCredentials,
-                          binance: { ...exchangeCredentials.binance, secret: e.target.value }
-                        })}
-                      />
-                    </div>
-                    <div className="flex items-end">
-                      <Button onClick={() => connectExchange('binance')} className="w-full" disabled>
-                        Coming Soon
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
 
               {/* Connected Trading Accounts */}
               <div className="space-y-2">
@@ -751,14 +464,11 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
                           <div className="text-2xl">{getWalletIcon(wallet.type)}</div>
                           <div>
                             <h3 className="font-semibold">{wallet.name}</h3>
-                            <p className="text-sm text-gray-600">
-                              {wallet.type === 'bybit' ? 'Live Trading Positions Tracked' : 'Portfolio Tracking Only'}
-                            </p>
+                            <p className="text-sm text-gray-600">{wallet.address}</p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Badge variant="outline">Read-Only</Badge>
-                          {wallet.type === 'bybit' && <Badge className="bg-green-500">Live Sync</Badge>}
                           <Button variant="outline" size="sm" onClick={() => syncWallet(wallet.id)}>
                             Sync
                           </Button>
