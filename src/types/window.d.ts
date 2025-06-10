@@ -1,11 +1,20 @@
-
 declare global {
   interface Window {
-    ethereum?: any;
-    BinanceChain?: {
-      request: (args: { method: string; params?: any[] }) => Promise<any>;
+    ethereum?: {
+      isMetaMask?: boolean;
+      isTrust?: boolean;
+      isTrustWallet?: boolean;
+      isBinance?: boolean;
+      isRainbow?: boolean;
+      request?: (args: { method: string; params?: any[] }) => Promise<any>;
     };
-    trustwallet?: any;
+    BinanceChain?: {
+      request?: (args: { method: string; params?: any[] }) => Promise<any>;
+    };
+    trustWallet?: any;
+    // WalletConnect related
+    WalletConnect?: any;
+    walletconnect?: any;
   }
 }
 

@@ -4,16 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet, Eye, Shield, TrendingUp, AlertCircle, CheckCircle, RefreshCw, Info } from "lucide-react";
+import { Wallet, Eye, Shield, TrendingUp, AlertCircle, Info, QrCode } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { testBybitConnection, getBybitSetupInstructions } from "@/services/bybitApi";
+import WalletConnectModal from "./WalletConnectModal";
 
 interface ConnectedWallet {
   id: string;
-  type: 'metamask' | 'trust' | 'ledger' | 'manual' | 'okx-exchange' | 'binance' | 'coinbase' | 'bybit' | 'binance-wallet';
+  type: 'metamask' | 'trust' | 'ledger' | 'manual' | 'okx-exchange' | 'binance' | 'coinbase' | 'bybit' | 'binance-wallet' | string;
   category: 'cold' | 'hot' | 'trading';
   name: string;
   address: string;
@@ -48,6 +48,9 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
 
   const [showBybitInstructions, setShowBybitInstructions] = useState(false);
   const [bybitError, setBybitError] = useState<string | null>(null);
+
+  const [isWalletConnectModalOpen, setIsWalletConnectModalOpen] = useState(false);
+  const [connectingCategory, setConnectingCategory] = useState<'cold' | 'hot' | 'trading'>('cold');
 
   useEffect(() => {
     if (currentUser) {
@@ -313,6 +316,25 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
 
   const bybitInstructions = getBybitSetupInstructions();
 
+  const openWalletConnectModal = (category: 'cold' | 'hot' | 'trading') => {
+    setConnectingCategory(category);
+    setIsWalletConnectModalOpen(true);
+  };
+
+  const handleWalletConnectConnection = (address: string, walletType: string) => {
+    const wallet: ConnectedWallet = {
+      id: Date.now().toString(),
+      type: walletType.toLowerCase().replace(' ', '-') as any,
+      category: connectingCategory,
+      name: `${walletType} (${connectingCategory.charAt(0).toUpperCase() + connectingCategory.slice(1)})`,
+      address: address,
+      status: 'connected',
+      lastSync: new Date().toISOString()
+    };
+    setConnectedWallets([...connectedWallets, wallet]);
+    setIsWalletConnectModalOpen(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header with Read-Only Notice */}
@@ -384,28 +406,34 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* WalletConnect Integration Notice */}
+              <Alert className="border-green-200 bg-green-50">
+                <QrCode className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-700">
+                  <strong>Enhanced Connection:</strong> Use WalletConnect v2 for secure mobile wallet connections with QR codes and deep linking support.
+                </AlertDescription>
+              </Alert>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="cursor-pointer hover:shadow-md transition-shadow border-blue-200" onClick={() => openWalletConnectModal('cold')}>
+                  <CardContent className="pt-6 text-center">
+                    <div className="text-4xl mb-2">📱</div>
+                    <h3 className="font-semibold">Connect via WalletConnect</h3>
+                    <p className="text-sm text-gray-600">Trust Wallet, MetaMask, Ledger & more</p>
+                    <div className="mt-2">
+                      <Badge variant="outline" className="text-green-600 border-green-300">QR Code Support</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+                
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => connectMetaMask('cold')}>
                   <CardContent className="pt-6 text-center">
                     <div className="text-4xl mb-2">🔒</div>
-                    <h3 className="font-semibold">Connect Ledger</h3>
-                    <p className="text-sm text-gray-600">Via MetaMask</p>
-                  </CardContent>
-                </Card>
-                
-                <Card className="opacity-75">
-                  <CardContent className="pt-6 text-center">
-                    <div className="text-4xl mb-2">❄️</div>
-                    <h3 className="font-semibold">Trezor</h3>
-                    <p className="text-sm text-gray-600">Coming soon</p>
-                  </CardContent>
-                </Card>
-                
-                <Card className="opacity-75">
-                  <CardContent className="pt-6 text-center">
-                    <div className="text-4xl mb-2">🏦</div>
-                    <h3 className="font-semibold">Paper Wallet</h3>
-                    <p className="text-sm text-gray-600">Add manually</p>
+                    <h3 className="font-semibold">Direct Browser Connection</h3>
+                    <p className="text-sm text-gray-600">MetaMask, Browser Wallets</p>
+                    <div className="mt-2">
+                      <Badge variant="outline">Direct Connection</Badge>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -454,36 +482,34 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* WalletConnect Integration Notice */}
+              <Alert className="border-blue-200 bg-blue-50">
+                <QrCode className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-700">
+                  <strong>Mobile First:</strong> Scan QR codes with your mobile wallet app or use deep links for instant connection.
+                </AlertDescription>
+              </Alert>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="cursor-pointer hover:shadow-md transition-shadow border-purple-200" onClick={() => openWalletConnectModal('hot')}>
+                  <CardContent className="pt-6 text-center">
+                    <div className="text-4xl mb-2">📱</div>
+                    <h3 className="font-semibold">Mobile Wallets</h3>
+                    <p className="text-sm text-gray-600">Trust, Rainbow, Coinbase & more</p>
+                    <div className="mt-2">
+                      <Badge variant="outline" className="text-purple-600 border-purple-300">WalletConnect v2</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+                
                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => connectMetaMask('hot')}>
                   <CardContent className="pt-6 text-center">
                     <div className="text-4xl mb-2">🦊</div>
-                    <h3 className="font-semibold">MetaMask</h3>
-                    <p className="text-sm text-gray-600">Browser wallet</p>
-                  </CardContent>
-                </Card>
-                
-                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => connectTrustWallet('hot')}>
-                  <CardContent className="pt-6 text-center">
-                    <div className="text-4xl mb-2">💎</div>
-                    <h3 className="font-semibold">Trust Wallet</h3>
-                    <p className="text-sm text-gray-600">Mobile wallet</p>
-                  </CardContent>
-                </Card>
-                
-                <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => connectBinanceWallet('hot')}>
-                  <CardContent className="pt-6 text-center">
-                    <div className="text-4xl mb-2">🟨</div>
-                    <h3 className="font-semibold">Binance Wallet</h3>
-                    <p className="text-sm text-gray-600">Binance ecosystem</p>
-                  </CardContent>
-                </Card>
-                
-                <Card className="opacity-75">
-                  <CardContent className="pt-6 text-center">
-                    <div className="text-4xl mb-2">🌐</div>
-                    <h3 className="font-semibold">WalletConnect</h3>
-                    <p className="text-sm text-gray-600">Coming soon</p>
+                    <h3 className="font-semibold">Browser Extensions</h3>
+                    <p className="text-sm text-gray-600">MetaMask, Browser Wallets</p>
+                    <div className="mt-2">
+                      <Badge variant="outline">Extension</Badge>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -804,6 +830,14 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* WalletConnect Modal */}
+      <WalletConnectModal
+        isOpen={isWalletConnectModalOpen}
+        onClose={() => setIsWalletConnectModalOpen(false)}
+        onConnect={handleWalletConnectConnection}
+        category={connectingCategory}
+      />
     </div>
   );
 };
