@@ -82,16 +82,26 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
           toast.success(`MetaMask ${category} wallet connected for read-only tracking!`);
         }
       } catch (error) {
-        toast.error('Failed to connect MetaMask wallet');
+        console.error('MetaMask connection error:', error);
+        toast.error('Failed to connect MetaMask wallet. Please make sure MetaMask is unlocked and try again.');
       }
     } else {
-      toast.error('MetaMask is not installed');
+      toast.error('MetaMask is not installed. Please install MetaMask extension first.');
     }
   };
 
   const connectTrustWallet = async (category: 'cold' | 'hot' | 'trading') => {
-    if (typeof window.ethereum !== 'undefined') {
-      try {
+    try {
+      // Trust Wallet uses the same ethereum provider as MetaMask when used as browser extension
+      if (typeof window.ethereum !== 'undefined') {
+        // Check if it's Trust Wallet specifically
+        const isTrustWallet = window.ethereum.isTrust || window.ethereum.isTrustWallet;
+        
+        if (!isTrustWallet) {
+          toast.error('Trust Wallet not detected. Please use Trust Wallet browser or install Trust Wallet extension.');
+          return;
+        }
+
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         if (accounts.length > 0) {
           const wallet: ConnectedWallet = {
@@ -106,17 +116,19 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
           setConnectedWallets([...connectedWallets, wallet]);
           toast.success(`Trust Wallet ${category} wallet connected for read-only tracking!`);
         }
-      } catch (error) {
-        toast.error('Failed to connect Trust Wallet');
+      } else {
+        toast.error('Trust Wallet not found. Please use Trust Wallet browser app or install the browser extension.');
       }
-    } else {
-      toast.error('Trust Wallet is not installed or not available');
+    } catch (error) {
+      console.error('Trust Wallet connection error:', error);
+      toast.error('Failed to connect Trust Wallet. Please make sure Trust Wallet is unlocked and try again.');
     }
   };
 
   const connectBinanceWallet = async (category: 'cold' | 'hot' | 'trading') => {
-    if (typeof window.BinanceChain !== 'undefined') {
-      try {
+    try {
+      // Check for Binance Chain Wallet
+      if (typeof window.BinanceChain !== 'undefined') {
         const accounts = await window.BinanceChain.request({ method: 'eth_requestAccounts' });
         if (accounts.length > 0) {
           const wallet: ConnectedWallet = {
@@ -131,11 +143,28 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
           setConnectedWallets([...connectedWallets, wallet]);
           toast.success(`Binance Wallet ${category} wallet connected for read-only tracking!`);
         }
-      } catch (error) {
-        toast.error('Failed to connect Binance Wallet');
+      } else if (typeof window.ethereum !== 'undefined' && window.ethereum.isBinance) {
+        // Fallback for Binance Wallet using ethereum provider
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (accounts.length > 0) {
+          const wallet: ConnectedWallet = {
+            id: Date.now().toString(),
+            type: 'binance-wallet',
+            category,
+            name: `Binance Wallet (${category.charAt(0).toUpperCase() + category.slice(1)})`,
+            address: accounts[0],
+            status: 'connected',
+            lastSync: new Date().toISOString()
+          };
+          setConnectedWallets([...connectedWallets, wallet]);
+          toast.success(`Binance Wallet ${category} wallet connected for read-only tracking!`);
+        }
+      } else {
+        toast.error('Binance Wallet not found. Please install Binance Wallet extension or use Binance Wallet browser.');
       }
-    } else {
-      toast.error('Binance Wallet is not installed or not available');
+    } catch (error) {
+      console.error('Binance Wallet connection error:', error);
+      toast.error('Failed to connect Binance Wallet. Please make sure it is unlocked and try again.');
     }
   };
 
@@ -165,21 +194,23 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
     const creds = exchangeCredentials[exchangeType];
     setBybitError(null);
 
-    if (!creds.apiKey) {
-      toast.error(`Please fill in ${exchangeType.toUpperCase()} API key`);
+    if (!creds.apiKey || !creds.apiKey.trim()) {
+      toast.error(`Please enter your ${exchangeType.toUpperCase()} API key`);
       return;
     }
 
     if (exchangeType === 'bybit') {
-      if (!creds.secret) {
-        toast.error('Bybit requires both API key and secret for authenticated access');
+      if (!creds.secret || !creds.secret.trim()) {
+        toast.error('Bybit requires both API key and secret for connection');
         setBybitError('Both API Key and Secret are required for Bybit connection');
         return;
       }
 
       try {
-        toast.info('Testing Bybit connection...');
-        const result = await testBybitConnection(creds.apiKey, creds.secret);
+        toast.info('Testing Bybit connection... This may take a moment.');
+        console.log('Attempting Bybit connection with API key:', creds.apiKey.substring(0, 8) + '...');
+        
+        const result = await testBybitConnection(creds.apiKey.trim(), creds.secret.trim());
         
         if (result.success) {
           const wallet: ConnectedWallet = {
@@ -190,22 +221,29 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
             address: 'Exchange Account',
             status: 'connected',
             lastSync: new Date().toISOString(),
-            apiKey: creds.apiKey
+            apiKey: creds.apiKey.trim()
           };
 
           setConnectedWallets([...connectedWallets, wallet]);
           setBybitError(null);
-          toast.success('Bybit Exchange connected successfully! Your positions will be synced.');
+          toast.success('Bybit Exchange connected successfully! Your positions will be synced automatically.');
+          
+          // Clear credentials after successful connection
+          setExchangeCredentials({
+            ...exchangeCredentials,
+            bybit: { apiKey: '', secret: '' }
+          });
         } else {
-          setBybitError(result.error || 'Unknown error occurred');
-          toast.error(`Bybit connection failed: ${result.error}`);
-          return;
+          const errorMsg = result.error || 'Failed to connect to Bybit. Please check your credentials.';
+          setBybitError(errorMsg);
+          toast.error(`Bybit connection failed: ${errorMsg}`);
+          console.error('Bybit connection failed:', result.error);
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred while connecting to Bybit';
         setBybitError(errorMessage);
         toast.error(`Bybit connection failed: ${errorMessage}`);
-        return;
+        console.error('Bybit connection error:', error);
       }
     } else {
       if (exchangeType === 'okx' && !creds.passphrase) {
@@ -231,12 +269,6 @@ const WalletConnect = ({ currentUser }: { currentUser: string }) => {
       setConnectedWallets([...connectedWallets, wallet]);
       toast.success(`${exchangeType.toUpperCase()} Exchange connected for portfolio tracking!`);
     }
-
-    // Clear credentials after successful connection
-    setExchangeCredentials({
-      ...exchangeCredentials,
-      [exchangeType]: exchangeType === 'okx' ? { apiKey: '', secret: '', passphrase: '' } : { apiKey: '', secret: '' }
-    });
   };
 
   const removeWallet = (id: string) => {
