@@ -1,11 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { QrCode, Smartphone, Wallet, ExternalLink, Copy, CheckCircle } from "lucide-react";
+import { QrCode, Smartphone, Wallet, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
-import { connectWallet, initializeWalletConnect } from "@/services/walletConnectService";
+import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useAccount, useDisconnect } from 'wagmi'
 
 interface WalletConnectModalProps {
   isOpen: boolean;
@@ -16,27 +17,21 @@ interface WalletConnectModalProps {
 
 const WalletConnectModal = ({ isOpen, onClose, onConnect, category }: WalletConnectModalProps) => {
   const [isConnecting, setIsConnecting] = useState(false);
-  const [connectionUri, setConnectionUri] = useState<string>('');
-  const [copied, setCopied] = useState(false);
+  const { open } = useWeb3Modal()
+  const { address, isConnected } = useAccount()
+  const { disconnect } = useDisconnect()
 
-  useEffect(() => {
-    if (isOpen) {
-      initializeWalletConnect();
-    }
-  }, [isOpen]);
-
-  const handleConnect = async (walletType: string) => {
+  const handleConnectWallet = async () => {
     setIsConnecting(true);
     
     try {
-      const result = await connectWallet(walletType);
+      await open();
       
-      if (result.success && result.address) {
-        onConnect(result.address, walletType);
-        toast.success(`${walletType} connected successfully!`);
+      // Check if connected after modal closes
+      if (isConnected && address) {
+        onConnect(address, 'WalletConnect');
+        toast.success('Wallet connected successfully!');
         onClose();
-      } else {
-        toast.error(result.error || 'Failed to connect wallet');
       }
     } catch (error) {
       console.error('Connection error:', error);
@@ -46,56 +41,12 @@ const WalletConnectModal = ({ isOpen, onClose, onConnect, category }: WalletConn
     }
   };
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      toast.success('Copied to clipboard!');
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      toast.error('Failed to copy to clipboard');
-    }
-  };
-
   const walletOptions = [
     {
-      id: 'trust',
-      name: 'Trust Wallet',
-      icon: '💎',
-      description: 'Mobile crypto wallet',
-      deepLink: 'trust://wc',
-      supported: true
-    },
-    {
-      id: 'metamask',
-      name: 'MetaMask',
-      icon: '🦊',
-      description: 'Browser extension wallet',
-      deepLink: 'metamask://wc',
-      supported: true
-    },
-    {
-      id: 'rainbow',
-      name: 'Rainbow Wallet',
-      icon: '🌈',
-      description: 'iOS & Android wallet',
-      deepLink: 'rainbow://wc',
-      supported: true
-    },
-    {
-      id: 'ledger',
-      name: 'Ledger Live',
-      icon: '🔒',
-      description: 'Hardware wallet via Ledger Live',
-      deepLink: 'ledgerlive://wc',
-      supported: true
-    },
-    {
-      id: 'coinbase',
-      name: 'Coinbase Wallet',
-      icon: '🔵',
-      description: 'Coinbase mobile wallet',
-      deepLink: 'cbwallet://wc',
+      id: 'walletconnect',
+      name: 'Open WalletConnect Modal',
+      icon: '🔗',
+      description: 'Connect any wallet via QR code',
       supported: true
     }
   ];
@@ -109,7 +60,7 @@ const WalletConnectModal = ({ isOpen, onClose, onConnect, category }: WalletConn
             <span>Connect {category.charAt(0).toUpperCase() + category.slice(1)} Wallet</span>
           </DialogTitle>
           <DialogDescription>
-            Choose your preferred wallet to connect via WalletConnect
+            Use WalletConnect v2 to connect your wallet securely
           </DialogDescription>
         </DialogHeader>
 
@@ -122,9 +73,9 @@ const WalletConnectModal = ({ isOpen, onClose, onConnect, category }: WalletConn
                 <div className="text-sm text-blue-800">
                   <p className="font-semibold mb-1">How to Connect:</p>
                   <ol className="list-decimal list-inside space-y-1 text-xs">
-                    <li>Click on your preferred wallet below</li>
-                    <li>A QR code will appear or your wallet app will open</li>
-                    <li>Scan the QR code with your mobile wallet</li>
+                    <li>Click "Connect Wallet" below</li>
+                    <li>Choose your wallet from the modal</li>
+                    <li>Scan QR code or use deep link</li>
                     <li>Approve the connection in your wallet</li>
                   </ol>
                 </div>
@@ -132,36 +83,47 @@ const WalletConnectModal = ({ isOpen, onClose, onConnect, category }: WalletConn
             </CardContent>
           </Card>
 
-          {/* Wallet Options */}
+          {/* Current Connection Status */}
+          {isConnected && address && (
+            <Card className="border-green-200 bg-green-50">
+              <CardContent className="pt-4">
+                <div className="text-sm text-green-800">
+                  <p className="font-semibold">Currently Connected:</p>
+                  <p className="text-xs break-all">{address}</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => disconnect()}
+                    className="mt-2"
+                  >
+                    Disconnect
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Wallet Connect Button */}
           <div className="grid grid-cols-1 gap-2">
-            {walletOptions.map((wallet) => (
-              <Card 
-                key={wallet.id}
-                className={`cursor-pointer hover:shadow-md transition-all ${
-                  !wallet.supported ? 'opacity-50' : 'hover:border-blue-300'
-                }`}
-                onClick={() => wallet.supported && handleConnect(wallet.name)}
-              >
-                <CardContent className="pt-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="text-2xl">{wallet.icon}</div>
-                      <div>
-                        <h3 className="font-semibold text-sm">{wallet.name}</h3>
-                        <p className="text-xs text-gray-600">{wallet.description}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {wallet.supported ? (
-                        <ExternalLink className="w-4 h-4 text-gray-400" />
-                      ) : (
-                        <span className="text-xs text-gray-500">Soon</span>
-                      )}
+            <Card 
+              className="cursor-pointer hover:shadow-md transition-all hover:border-blue-300"
+              onClick={handleConnectWallet}
+            >
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="text-2xl">🔗</div>
+                    <div>
+                      <h3 className="font-semibold text-sm">Connect Wallet</h3>
+                      <p className="text-xs text-gray-600">Via WalletConnect v2</p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                  <div className="flex items-center space-x-2">
+                    <ExternalLink className="w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Mobile Instructions */}
@@ -170,9 +132,9 @@ const WalletConnectModal = ({ isOpen, onClose, onConnect, category }: WalletConn
               <div className="flex items-start space-x-2">
                 <Smartphone className="w-5 h-5 text-green-600 mt-0.5" />
                 <div className="text-sm text-green-800">
-                  <p className="font-semibold mb-1">Mobile Users:</p>
+                  <p className="font-semibold mb-1">Supported Wallets:</p>
                   <p className="text-xs">
-                    Make sure your wallet app is installed and updated to the latest version for the best experience.
+                    MetaMask, Trust Wallet, Rainbow, Coinbase Wallet, Ledger Live, and 300+ other wallets
                   </p>
                 </div>
               </div>
@@ -183,7 +145,7 @@ const WalletConnectModal = ({ isOpen, onClose, onConnect, category }: WalletConn
           {isConnecting && (
             <div className="text-center py-4">
               <div className="animate-spin inline-block w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-              <p className="text-sm text-gray-600 mt-2">Connecting to wallet...</p>
+              <p className="text-sm text-gray-600 mt-2">Opening wallet connection...</p>
             </div>
           )}
         </div>
