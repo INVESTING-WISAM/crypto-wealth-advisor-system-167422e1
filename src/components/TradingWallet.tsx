@@ -8,8 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertTriangle, TrendingUp, Target, Wallet, RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { useLivePrices } from "@/hooks/useLivePrices";
-import { useBybitPositions } from "@/hooks/useBybitPositions";
+import { useSecurePrices } from "@/hooks/useSecurePrices";
 
 interface TradingPosition {
   id: string;
@@ -55,7 +54,7 @@ const TradingWallet = ({ portfolioData, currentUser }: { portfolioData: any, cur
     'BTC', 'ETH', 'SOL', 'CORE' // Always include major tokens
   ]));
 
-  const { prices, isLoading: pricesLoading, lastUpdated, error: pricesError, updatePrices } = useLivePrices(allTokens);
+  const { prices, isLoading: pricesLoading, lastUpdated, error: pricesError, updatePrices } = useSecurePrices(allTokens);
 
   const getAllocationPercentage = (type: string) => {
     switch (type) {
@@ -67,7 +66,7 @@ const TradingWallet = ({ portfolioData, currentUser }: { portfolioData: any, cur
     }
   };
 
-  // Get connected Bybit wallet
+  // Get connected wallets (remove Bybit specific code)
   const [connectedWallets, setConnectedWallets] = useState<any[]>([]);
   
   useEffect(() => {
@@ -78,18 +77,6 @@ const TradingWallet = ({ portfolioData, currentUser }: { portfolioData: any, cur
       }
     }
   }, [currentUser]);
-
-  const bybitWallet = connectedWallets.find(w => w.type === 'bybit');
-  const bybitApiKey = bybitWallet?.apiKey || null;
-
-  // Fetch Bybit positions
-  const { 
-    positions: bybitPositions, 
-    isLoading: bybitLoading, 
-    lastUpdated: bybitLastUpdated, 
-    error: bybitError, 
-    updatePositions: updateBybitPositions 
-  } = useBybitPositions(bybitApiKey);
 
   useEffect(() => {
     if (currentUser) {
@@ -299,7 +286,7 @@ const TradingWallet = ({ portfolioData, currentUser }: { portfolioData: any, cur
                 <Wifi className="w-5 h-5 text-green-500" />
               )}
               <span className="text-sm">
-                {pricesError ? 'Price feed disconnected' : 'Live prices from OKX'}
+                {pricesError ? 'Price feed disconnected' : 'Live prices from Secure API'}
               </span>
               {lastUpdated && (
                 <span className="text-xs text-gray-500">
@@ -316,50 +303,12 @@ const TradingWallet = ({ portfolioData, currentUser }: { portfolioData: any, cur
             <Alert className="mt-2">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                {pricesError}. Using last known prices.
+                {pricesError}. Using fallback prices.
               </AlertDescription>
             </Alert>
           )}
         </CardContent>
       </Card>
-
-      {/* Bybit Live Positions Status */}
-      {bybitWallet && (
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-2xl">🟡</span>
-                {bybitError ? (
-                  <WifiOff className="w-5 h-5 text-red-500" />
-                ) : (
-                  <Wifi className="w-5 h-5 text-green-500" />
-                )}
-                <span className="text-sm">
-                  {bybitError ? 'Bybit connection error' : 'Live Bybit positions synced'}
-                </span>
-                {bybitLastUpdated && (
-                  <span className="text-xs text-gray-500">
-                    Last synced: {bybitLastUpdated.toLocaleTimeString()}
-                  </span>
-                )}
-              </div>
-              <Button variant="outline" size="sm" onClick={updateBybitPositions} disabled={bybitLoading}>
-                <RefreshCw className={`w-4 h-4 mr-2 ${bybitLoading ? 'animate-spin' : ''}`} />
-                Sync Bybit
-              </Button>
-            </div>
-            {bybitError && (
-              <Alert className="mt-2">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  {bybitError}. Check your Bybit API key permissions.
-                </AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Wallet Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -532,74 +481,6 @@ const TradingWallet = ({ portfolioData, currentUser }: { portfolioData: any, cur
           </div>
         </CardContent>
       </Card>
-
-      {/* Bybit Live Positions */}
-      {bybitWallet && Object.keys(bybitPositions).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <span className="text-2xl">🟡</span>
-              <span>Live Bybit Positions</span>
-              <Badge className="bg-green-500">Live Data</Badge>
-            </CardTitle>
-            <CardDescription>
-              Real-time positions from your connected Bybit account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {Object.entries(bybitPositions).map(([symbol, position]) => (
-                <Card key={symbol} className="border-yellow-200">
-                  <CardContent className="pt-4">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex items-center space-x-2">
-                        <h3 className="font-semibold">{symbol}</h3>
-                        <Badge variant="outline" className={position.side === 'long' ? 'bg-green-100' : 'bg-red-100'}>
-                          {position.side.toUpperCase()}
-                        </Badge>
-                        <Badge className="bg-yellow-500">Bybit Live</Badge>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
-                      <div>
-                        <Label className="text-gray-600">Entry Price</Label>
-                        <p className="font-semibold">${position.entryPrice.toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-600">Current Price</Label>
-                        <p className="font-semibold">${position.price.toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-600">Amount</Label>
-                        <p className="font-semibold">{position.amount.toFixed(6)}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-600">Take Profit</Label>
-                        <p className="font-semibold">
-                          {position.takeProfit ? `$${position.takeProfit.toFixed(2)}` : 'Not set'}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-600">Stop Loss</Label>
-                        <p className="font-semibold">
-                          {position.stopLoss ? `$${position.stopLoss.toFixed(2)}` : 'Not set'}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-600">P&L</Label>
-                        <p className={`font-semibold ${position.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          ${position.pnl.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Investment Positions */}
       <Card>
