@@ -8,6 +8,7 @@ import { WagmiProvider } from 'wagmi';
 import { config } from './lib/walletConnect';
 import Index from "./pages/Index";
 import ConnectExchange from "./pages/ConnectExchange";
+import Signals from "./pages/Signals";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/connect-exchange" element={<ConnectExchange />} />
+            <Route path="/signals" element={<Signals />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
