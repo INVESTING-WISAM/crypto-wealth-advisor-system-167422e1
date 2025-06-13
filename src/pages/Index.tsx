@@ -37,7 +37,7 @@ const Index = () => {
                   {connection?.exchange} Connected
                 </Badge>
               )}
-              <WalletConnect />
+              <WalletConnect currentUser="demo-user" />
             </div>
           </div>
         </div>
