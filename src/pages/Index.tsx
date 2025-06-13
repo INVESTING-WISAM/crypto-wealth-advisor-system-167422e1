@@ -7,6 +7,18 @@ import PortfolioDisplay from "@/components/PortfolioDisplay";
 import { Button } from "@/components/ui/button";
 import { useExchangeConnection } from "@/hooks/useExchangeConnection";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  BarChart3, 
+  TrendingUp, 
+  Shield, 
+  Users, 
+  Globe, 
+  Zap,
+  ArrowRight,
+  Check,
+  Star
+} from "lucide-react";
 
 const Index = () => {
   const [portfolioData, setPortfolioData] = useState(null);
@@ -17,26 +29,26 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-800 relative">
-      {/* Navigation Bar */}
-      <nav className="bg-white/10 backdrop-blur-md border-b border-white/20 sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-white">
+      {/* Header Navigation */}
+      <header className="border-b bg-white sticky top-0 z-50">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">💼</span>
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl font-bold text-gray-900">CryptoSight</span>
               </div>
-              <h1 className="text-2xl font-bold text-white">
-                CryptoPortfolio Pro
-              </h1>
-              <span className="text-sm text-purple-200">Professional Trading Platform</span>
             </div>
+            <nav className="hidden md:flex items-center space-x-8">
+              <Link to="#" className="text-gray-600 hover:text-gray-900 font-medium">Features</Link>
+              <Link to="#" className="text-gray-600 hover:text-gray-900 font-medium">Pricing</Link>
+              <Link to="/signals" className="text-gray-600 hover:text-gray-900 font-medium">Signals</Link>
+              <Link to="#" className="text-gray-600 hover:text-gray-900 font-medium">Support</Link>
+            </nav>
             <div className="flex items-center space-x-4">
-              <Link to="/signals">
-                <Button variant="outline" className="bg-white/20 text-white border-white/30 hover:bg-white/30">
-                  Signals
-                </Button>
-              </Link>
               {isConnected && (
                 <Badge variant="secondary" className="bg-green-100 text-green-800">
                   {connection?.exchange} Connected
@@ -46,278 +58,338 @@ const Index = () => {
             </div>
           </div>
         </div>
-      </nav>
+      </header>
 
-      <div className="container mx-auto px-4 py-8 relative z-10 max-w-7xl">
-        <header className="text-center mb-12">
-          <h2 className="text-4xl md:text-6xl font-bold text-white mb-4">
-            Advanced Cryptocurrency Portfolio Management System
-          </h2>
-          <p className="text-xl text-purple-100 mb-8">
-            Sign in to access your personalized crypto portfolio management system
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-blue-50 to-indigo-100 py-20">
+        <div className="container mx-auto px-4 text-center">
+          <h1 className="text-5xl font-bold text-gray-900 mb-6">
+            Professional Cryptocurrency Portfolio Management
+          </h1>
+          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            Track, analyze, and optimize your crypto investments with institutional-grade tools. 
+            Get real-time insights, performance analytics, and professional trading signals.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              onClick={() => window.location.href = '/connect-exchange'}
-              className="px-8 py-3 text-lg bg-white text-gray-900 hover:bg-gray-100 rounded-lg font-medium"
-            >
-              Connect Exchange
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <Button className="px-8 py-3 text-lg bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
+              Start Free Trial
             </Button>
-            <Link to="/signals">
-              <Button className="px-8 py-3 text-lg bg-white text-gray-900 hover:bg-gray-100 rounded-lg font-medium">
-                View Trading Signals
-              </Button>
-            </Link>
+            <Button variant="outline" className="px-8 py-3 text-lg border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">
+              Watch Demo
+            </Button>
           </div>
-        </header>
-
-        {/* Portfolio Calculator Section */}
-        <div className="mb-12 bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
-          <PortfolioCalculator 
-            onPortfolioUpdate={handlePortfolioUpdate}
-            currentUser="demo-user"
-          />
+          
+          {/* Portfolio Calculator Card */}
+          <Card className="max-w-4xl mx-auto bg-white shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-2xl text-gray-900">Portfolio Calculator</CardTitle>
+              <CardDescription>Calculate and track your cryptocurrency portfolio performance</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PortfolioCalculator 
+                onPortfolioUpdate={handlePortfolioUpdate}
+                currentUser="demo-user"
+              />
+            </CardContent>
+          </Card>
         </div>
+      </section>
 
-        {/* Portfolio Display Section */}
-        {portfolioData && (
-          <div className="mb-12 bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
-            <PortfolioDisplay portfolioData={portfolioData} />
-          </div>
-        )}
-
-        {/* Navigation Tabs */}
-        <div className="flex justify-center mb-8">
-          <div className="bg-white/10 backdrop-blur-md rounded-full p-2 border border-white/20">
-            <div className="flex space-x-2 overflow-x-auto">
-              <Button className="bg-purple-600 text-white rounded-full px-6 py-2 whitespace-nowrap">Calculator</Button>
-              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2 whitespace-nowrap">Portfolio</Button>
-              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2 whitespace-nowrap">Tracker</Button>
-              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2 whitespace-nowrap">Trading</Button>
-              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2 whitespace-nowrap">Wallets</Button>
-              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2 whitespace-nowrap">Education</Button>
-              <Link to="/signals">
-                <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2 whitespace-nowrap">Signals</Button>
-              </Link>
-              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2 whitespace-nowrap">Alerts</Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Feature Sections */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
-          {/* Investment Planning */}
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 hover:bg-white/20 transition-all duration-300">
-            <div className="flex items-center mb-6">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-2xl">📊</span>
-              </div>
-              <h2 className="text-2xl font-semibold text-white">Investment Planning</h2>
-            </div>
-            <p className="text-purple-100 mb-6">
-              Create personalized investment strategies based on your risk tolerance and financial goals.
-            </p>
-            <ul className="text-purple-200 space-y-2 text-sm mb-6">
-              <li>• Risk assessment tools</li>
-              <li>• Goal-based planning</li>
-              <li>• Asset allocation strategies</li>
-              <li>• Performance tracking</li>
-            </ul>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
-              Start Planning
-            </Button>
-          </div>
-
-          {/* Trading Wallet */}
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 hover:bg-white/20 transition-all duration-300">
-            <div className="flex items-center mb-6">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-2xl">💼</span>
-              </div>
-              <h2 className="text-2xl font-semibold text-white">Trading Wallet</h2>
-            </div>
-            <p className="text-purple-100 mb-6">
-              Secure wallet integration for seamless trading across multiple exchanges and platforms.
-            </p>
-            <ul className="text-purple-200 space-y-2 text-sm mb-6">
-              <li>• Multi-wallet support</li>
-              <li>• Real-time balances</li>
-              <li>• Transaction history</li>
-              <li>• Security features</li>
-            </ul>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
-              Connect Wallet
-            </Button>
-          </div>
-
-          {/* Signals Channel */}
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 hover:bg-white/20 transition-all duration-300">
-            <div className="flex items-center mb-6">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-2xl">📡</span>
-              </div>
-              <h2 className="text-2xl font-semibold text-white">Trading Signals</h2>
-            </div>
-            <p className="text-purple-100 mb-6">
-              Professional trading signals and market analysis from expert traders and AI algorithms.
-            </p>
-            <ul className="text-purple-200 space-y-2 text-sm mb-6">
-              <li>• Real-time signals</li>
-              <li>• Technical analysis</li>
-              <li>• Risk management</li>
-              <li>• Performance metrics</li>
-            </ul>
-            <Link to="/signals">
-              <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
-                View Signals
-              </Button>
-            </Link>
-          </div>
-
-          {/* Content Creator */}
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 hover:bg-white/20 transition-all duration-300">
-            <div className="flex items-center mb-6">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-2xl">🎨</span>
-              </div>
-              <h2 className="text-2xl font-semibold text-white">Content Creator</h2>
-            </div>
-            <p className="text-purple-100 mb-6">
-              Create and share trading content, educational materials, and market insights with the community.
-            </p>
-            <ul className="text-purple-200 space-y-2 text-sm mb-6">
-              <li>• Content creation tools</li>
-              <li>• Community sharing</li>
-              <li>• Educational resources</li>
-              <li>• Monetization options</li>
-            </ul>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
-              Create Content
-            </Button>
-          </div>
-
-          {/* Category Manager */}
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 hover:bg-white/20 transition-all duration-300">
-            <div className="flex items-center mb-6">
-              <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-2xl">📂</span>
-              </div>
-              <h2 className="text-2xl font-semibold text-white">Category Manager</h2>
-            </div>
-            <p className="text-purple-100 mb-6">
-              Organize and manage your trading strategies, portfolios, and investments by custom categories.
-            </p>
-            <ul className="text-purple-200 space-y-2 text-sm mb-6">
-              <li>• Custom categories</li>
-              <li>• Portfolio organization</li>
-              <li>• Strategy grouping</li>
-              <li>• Performance comparison</li>
-            </ul>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
-              Manage Categories
-            </Button>
-          </div>
-
-          {/* Investment Tracker */}
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 hover:bg-white/20 transition-all duration-300">
-            <div className="flex items-center mb-6">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-2xl">📈</span>
-              </div>
-              <h2 className="text-2xl font-semibold text-white">Investment Tracker</h2>
-            </div>
-            <p className="text-purple-100 mb-6">
-              Track your investments across all platforms with detailed analytics and performance insights.
-            </p>
-            <ul className="text-purple-200 space-y-2 text-sm mb-6">
-              <li>• Multi-platform tracking</li>
-              <li>• Performance analytics</li>
-              <li>• Profit/loss calculations</li>
-              <li>• Tax reporting</li>
-            </ul>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
-              Track Investments
-            </Button>
+      {/* Portfolio Display */}
+      {portfolioData && (
+        <section className="py-12 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <Card className="max-w-6xl mx-auto bg-white shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-2xl text-gray-900">Portfolio Overview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PortfolioDisplay portfolioData={portfolioData} />
+              </CardContent>
+            </Card>
           </div>
         </section>
+      )}
 
-        {/* Additional Feature Cards */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-12">
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition-all duration-300">
-            <h2 className="text-2xl font-semibold text-white mb-4">
-              Wallet Balances
+      {/* Features Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Everything you need to manage your crypto portfolio
             </h2>
-            <p className="text-purple-100 mb-4">
-              View your combined wallet balances across different chains.
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Professional-grade tools and insights to help you make informed investment decisions
             </p>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
-              View Balances
-            </Button>
           </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300">
+              <CardHeader>
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                  <TrendingUp className="w-6 h-6 text-blue-600" />
+                </div>
+                <CardTitle className="text-xl text-gray-900">Real-time Tracking</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  Monitor your portfolio performance across multiple exchanges and wallets in real-time.
+                </p>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />Multi-exchange support</li>
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />Live price updates</li>
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />Performance analytics</li>
+                </ul>
+              </CardContent>
+            </Card>
 
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition-all duration-300">
-            <h2 className="text-2xl font-semibold text-white mb-4">
-              Exchange Balances
-            </h2>
-            <p className="text-purple-100 mb-4">
-              See your balances on connected exchanges like Binance, Coinbase,
-              and Kraken.
-            </p>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
-              Connect Exchange
-            </Button>
-          </div>
+            <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300">
+              <CardHeader>
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                  <BarChart3 className="w-6 h-6 text-purple-600" />
+                </div>
+                <CardTitle className="text-xl text-gray-900">Advanced Analytics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  Deep insights into your portfolio allocation, risk metrics, and performance trends.
+                </p>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />Portfolio allocation</li>
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />Risk assessment</li>
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />Tax reporting</li>
+                </ul>
+              </CardContent>
+            </Card>
 
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition-all duration-300">
-            <h2 className="text-2xl font-semibold text-white mb-4">
-              Portfolio Allocation
-            </h2>
-            <p className="text-purple-100 mb-4">
-              Analyze your portfolio allocation by asset and platform.
-            </p>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
-              Analyze Portfolio
-            </Button>
-          </div>
+            <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300">
+              <CardHeader>
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                  <Zap className="w-6 h-6 text-green-600" />
+                </div>
+                <CardTitle className="text-xl text-gray-900">Trading Signals</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  Professional trading signals and market analysis from expert traders and AI algorithms.
+                </p>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />Expert analysis</li>
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />AI-powered insights</li>
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />Risk management</li>
+                </ul>
+                <Link to="/signals">
+                  <Button className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white rounded-lg">
+                    View Signals <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
 
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition-all duration-300">
-            <h2 className="text-2xl font-semibold text-white mb-4">
-              Transaction History
-            </h2>
-            <p className="text-purple-100 mb-4">
-              Review your transaction history across all connected accounts.
-            </p>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
-              View History
-            </Button>
-          </div>
+            <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300">
+              <CardHeader>
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
+                  <Shield className="w-6 h-6 text-orange-600" />
+                </div>
+                <CardTitle className="text-xl text-gray-900">Secure & Private</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  Bank-level security with encrypted data and read-only API access to your exchanges.
+                </p>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />256-bit encryption</li>
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />Read-only access</li>
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />No withdrawals</li>
+                </ul>
+              </CardContent>
+            </Card>
 
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition-all duration-300">
-            <h2 className="text-2xl font-semibold text-white mb-4">
-              Performance Metrics
-            </h2>
-            <p className="text-purple-100 mb-4">
-              Track your portfolio's performance over time with detailed
-              metrics.
-            </p>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
-              View Metrics
-            </Button>
-          </div>
+            <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300">
+              <CardHeader>
+                <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+                  <Globe className="w-6 h-6 text-indigo-600" />
+                </div>
+                <CardTitle className="text-xl text-gray-900">Multi-Exchange</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  Connect multiple exchanges and wallets for a complete view of your crypto holdings.
+                </p>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />Binance, Coinbase, Kraken</li>
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />Hardware wallets</li>
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />DeFi protocols</li>
+                </ul>
+              </CardContent>
+            </Card>
 
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition-all duration-300">
-            <h2 className="text-2xl font-semibold text-white mb-4">
-              Alerts and Notifications
-            </h2>
-            <p className="text-purple-100 mb-4">
-              Set up custom alerts for price movements and portfolio changes.
-            </p>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
-              Setup Alerts
-            </Button>
+            <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300">
+              <CardHeader>
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
+                  <Users className="w-6 h-6 text-red-600" />
+                </div>
+                <CardTitle className="text-xl text-gray-900">Expert Support</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  Get help from our team of crypto experts and join our community of traders.
+                </p>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />24/7 support</li>
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />Educational resources</li>
+                  <li className="flex items-center"><Check className="w-4 h-4 text-green-500 mr-2" />Community access</li>
+                </ul>
+              </CardContent>
+            </Card>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Choose your plan
+            </h2>
+            <p className="text-xl text-gray-600">
+              Start free, upgrade when you need more features
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <Card className="border border-gray-200 bg-white">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl text-gray-900">Free</CardTitle>
+                <div className="text-4xl font-bold text-gray-900">$0</div>
+                <p className="text-gray-600">per month</p>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 mb-6">
+                  <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />Basic portfolio tracking</li>
+                  <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />Up to 2 exchanges</li>
+                  <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />Basic analytics</li>
+                  <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />Community support</li>
+                </ul>
+                <Button className="w-full bg-gray-600 hover:bg-gray-700 text-white rounded-lg">
+                  Get Started
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-blue-500 bg-white relative">
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                <span className="bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-medium flex items-center">
+                  <Star className="w-4 h-4 mr-1" />
+                  Most Popular
+                </span>
+              </div>
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl text-gray-900">Professional</CardTitle>
+                <div className="text-4xl font-bold text-gray-900">$29</div>
+                <p className="text-gray-600">per month</p>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 mb-6">
+                  <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />Unlimited exchanges</li>
+                  <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />Advanced analytics</li>
+                  <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />Trading signals</li>
+                  <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />Tax reporting</li>
+                  <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />Priority support</li>
+                </ul>
+                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                  Start Free Trial
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border border-gray-200 bg-white">
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl text-gray-900">Enterprise</CardTitle>
+                <div className="text-4xl font-bold text-gray-900">$99</div>
+                <p className="text-gray-600">per month</p>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 mb-6">
+                  <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />Everything in Professional</li>
+                  <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />API access</li>
+                  <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />Custom integrations</li>
+                  <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />Dedicated support</li>
+                  <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />White-label options</li>
+                </ul>
+                <Button variant="outline" className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg">
+                  Contact Sales
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-blue-600">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-4xl font-bold text-white mb-6">
+            Ready to take control of your crypto portfolio?
+          </h2>
+          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            Join thousands of investors who trust CryptoSight for their portfolio management needs.
+          </p>
+          <Button className="px-8 py-3 text-lg bg-white text-blue-600 hover:bg-gray-100 rounded-lg font-medium">
+            Start Your Free Trial
+          </Button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl font-bold">CryptoSight</span>
+              </div>
+              <p className="text-gray-400">
+                Professional cryptocurrency portfolio management for serious investors.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-4">Product</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link to="#" className="hover:text-white">Features</Link></li>
+                <li><Link to="#" className="hover:text-white">Pricing</Link></li>
+                <li><Link to="/signals" className="hover:text-white">Trading Signals</Link></li>
+                <li><Link to="#" className="hover:text-white">API</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-4">Support</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link to="#" className="hover:text-white">Help Center</Link></li>
+                <li><Link to="#" className="hover:text-white">Documentation</Link></li>
+                <li><Link to="#" className="hover:text-white">Contact Us</Link></li>
+                <li><Link to="#" className="hover:text-white">Status</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-4">Company</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link to="#" className="hover:text-white">About</Link></li>
+                <li><Link to="#" className="hover:text-white">Blog</Link></li>
+                <li><Link to="#" className="hover:text-white">Privacy</Link></li>
+                <li><Link to="#" className="hover:text-white">Terms</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; 2024 CryptoSight. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
