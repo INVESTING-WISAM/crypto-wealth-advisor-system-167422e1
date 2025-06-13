@@ -17,7 +17,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-800 relative overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-800 relative">
       {/* Navigation Bar */}
       <nav className="bg-white/10 backdrop-blur-md border-b border-white/20 sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
@@ -59,12 +59,12 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               onClick={() => window.location.href = '/connect-exchange'}
-              className="px-8 py-3 text-lg bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30"
+              className="px-8 py-3 text-lg bg-white text-gray-900 hover:bg-gray-100 rounded-lg font-medium"
             >
               Connect Exchange
             </Button>
             <Link to="/signals">
-              <Button variant="outline" className="px-8 py-3 text-lg bg-white/10 text-white border-white/30 hover:bg-white/20">
+              <Button className="px-8 py-3 text-lg bg-white text-gray-900 hover:bg-gray-100 rounded-lg font-medium">
                 View Trading Signals
               </Button>
             </Link>
@@ -123,7 +123,7 @@ const Index = () => {
               <li>• Asset allocation strategies</li>
               <li>• Performance tracking</li>
             </ul>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 transition-colors duration-200 rounded-lg px-4 py-2 font-medium">
+            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
               Start Planning
             </Button>
           </div>
@@ -145,7 +145,7 @@ const Index = () => {
               <li>• Transaction history</li>
               <li>• Security features</li>
             </ul>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 transition-colors duration-200 rounded-lg px-4 py-2 font-medium">
+            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
               Connect Wallet
             </Button>
           </div>
@@ -168,7 +168,7 @@ const Index = () => {
               <li>• Performance metrics</li>
             </ul>
             <Link to="/signals">
-              <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 transition-colors duration-200 rounded-lg px-4 py-2 font-medium">
+              <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
                 View Signals
               </Button>
             </Link>
@@ -191,7 +191,7 @@ const Index = () => {
               <li>• Educational resources</li>
               <li>• Monetization options</li>
             </ul>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 transition-colors duration-200 rounded-lg px-4 py-2 font-medium">
+            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
               Create Content
             </Button>
           </div>
@@ -213,7 +213,7 @@ const Index = () => {
               <li>• Strategy grouping</li>
               <li>• Performance comparison</li>
             </ul>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 transition-colors duration-200 rounded-lg px-4 py-2 font-medium">
+            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
               Manage Categories
             </Button>
           </div>
@@ -235,7 +235,7 @@ const Index = () => {
               <li>• Profit/loss calculations</li>
               <li>• Tax reporting</li>
             </ul>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 transition-colors duration-200 rounded-lg px-4 py-2 font-medium">
+            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
               Track Investments
             </Button>
           </div>
@@ -250,7 +250,7 @@ const Index = () => {
             <p className="text-purple-100 mb-4">
               View your combined wallet balances across different chains.
             </p>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 transition-colors duration-200 rounded-lg px-4 py-2 font-medium">
+            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
               View Balances
             </Button>
           </div>
@@ -263,7 +263,7 @@ const Index = () => {
               See your balances on connected exchanges like Binance, Coinbase,
               and Kraken.
             </p>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 transition-colors duration-200 rounded-lg px-4 py-2 font-medium">
+            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
               Connect Exchange
             </Button>
           </div>
@@ -275,7 +275,7 @@ const Index = () => {
             <p className="text-purple-100 mb-4">
               Analyze your portfolio allocation by asset and platform.
             </p>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 transition-colors duration-200 rounded-lg px-4 py-2 font-medium">
+            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
               Analyze Portfolio
             </Button>
           </div>
@@ -287,7 +287,7 @@ const Index = () => {
             <p className="text-purple-100 mb-4">
               Review your transaction history across all connected accounts.
             </p>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 transition-colors duration-200 rounded-lg px-4 py-2 font-medium">
+            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
               View History
             </Button>
           </div>
@@ -300,7 +300,7 @@ const Index = () => {
               Track your portfolio's performance over time with detailed
               metrics.
             </p>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 transition-colors duration-200 rounded-lg px-4 py-2 font-medium">
+            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
               View Metrics
             </Button>
           </div>
@@ -312,7 +312,7 @@ const Index = () => {
             <p className="text-purple-100 mb-4">
               Set up custom alerts for price movements and portfolio changes.
             </p>
-            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 transition-colors duration-200 rounded-lg px-4 py-2 font-medium">
+            <Button className="w-full bg-white text-gray-900 hover:bg-gray-100 rounded-lg px-4 py-2 font-medium">
               Setup Alerts
             </Button>
           </div>
