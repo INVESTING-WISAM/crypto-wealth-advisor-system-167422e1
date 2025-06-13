@@ -5,26 +5,28 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, RefreshCw, DollarSign } from "lucide-react";
 import { toast } from "sonner";
+import { useSecurePrices } from "@/hooks/useSecurePrices";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableFooter,
+} from "@/components/ui/table";
 
 interface PortfolioDisplayProps {
   portfolioData: any;
 }
 
-// Simplified mock prices without demo labels
-const mockPrices: { [key: string]: { price: number; change24h: number } } = {
-  BTC: { price: 43500, change24h: 2.5 },
-  ETH: { price: 2650, change24h: 1.8 },
-  SOL: { price: 98, change24h: -0.5 },
-  CORE: { price: 1.25, change24h: 5.2 },
-  ADA: { price: 0.52, change24h: 3.1 },
-  DOT: { price: 7.85, change24h: -1.2 },
-  LINK: { price: 15.40, change24h: 0.8 },
-  UNI: { price: 6.80, change24h: 2.2 }
-};
-
 const PortfolioDisplay: React.FC<PortfolioDisplayProps> = ({ portfolioData }) => {
-  const [prices, setPrices] = useState(mockPrices);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Get all tokens from portfolio allocation for price tracking
+  const portfolioTokens = portfolioData?.allocation ? Object.keys(portfolioData.allocation) : [];
+  
+  const { prices, isLoading, lastUpdated: apiLastUpdated, error, updatePrices } = useSecurePrices(portfolioTokens);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -41,17 +43,9 @@ const PortfolioDisplay: React.FC<PortfolioDisplayProps> = ({ portfolioData }) =>
   };
 
   const refreshPrices = () => {
-    const updatedPrices = { ...prices };
-    Object.keys(updatedPrices).forEach(token => {
-      const change = (Math.random() - 0.5) * 2;
-      updatedPrices[token] = {
-        ...updatedPrices[token],
-        change24h: updatedPrices[token].change24h + change
-      };
-    });
-    setPrices(updatedPrices);
+    updatePrices();
     setLastUpdated(new Date());
-    toast.success('Portfolio prices refreshed');
+    toast.success('Portfolio prices refreshed from Secure API');
   };
 
   const calculatePortfolioValue = () => {
@@ -113,119 +107,123 @@ const PortfolioDisplay: React.FC<PortfolioDisplayProps> = ({ portfolioData }) =>
         </div>
       </div>
 
-      {/* Excel-style Portfolio Table */}
+      {/* Portfolio Table */}
       <Card>
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-xl text-gray-900">Portfolio Holdings</CardTitle>
-              <CardDescription>Detailed breakdown of your cryptocurrency positions</CardDescription>
+              <CardDescription>Live prices from Secure API - Last updated: {apiLastUpdated?.toLocaleTimeString() || 'Never'}</CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={refreshPrices}>
-              <RefreshCw className="w-4 h-4 mr-2" />
+            <Button variant="outline" size="sm" onClick={refreshPrices} disabled={isLoading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-200">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-900">Symbol</th>
-                  <th className="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-900">Amount</th>
-                  <th className="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-900">Entry Price</th>
-                  <th className="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-900">Current Price</th>
-                  <th className="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-900">Value</th>
-                  <th className="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-900">Average Cost</th>
-                  <th className="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-900">P&L</th>
-                  <th className="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-900">Allocation</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(portfolioData.allocation).map(([token, details]: [string, any]) => {
-                  const tokenData = prices[token];
-                  const currentPrice = tokenData?.price || 1;
-                  const change24h = tokenData?.change24h || 0;
-                  const tokenAmount = details.amount / currentPrice;
-                  const currentValue = tokenAmount * currentPrice;
-                  const entryPrice = details.amount / tokenAmount; // Calculate entry price from allocation
-                  const avgCost = entryPrice; // For simplicity, same as entry price
-                  const pnl = currentValue - details.amount;
-                  const pnlPercentage = (pnl / details.amount) * 100;
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Symbol</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Entry Price</TableHead>
+                <TableHead>Current Price</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead>Average Cost</TableHead>
+                <TableHead>P&L</TableHead>
+                <TableHead>Allocation</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(portfolioData.allocation).map(([token, details]: [string, any]) => {
+                const tokenData = prices[token];
+                const currentPrice = tokenData?.price || 1;
+                const change24h = tokenData?.change24h || 0;
+                const tokenAmount = details.amount / currentPrice;
+                const currentValue = tokenAmount * currentPrice;
+                const entryPrice = details.amount / tokenAmount;
+                const avgCost = entryPrice;
+                const pnl = currentValue - details.amount;
+                const pnlPercentage = (pnl / details.amount) * 100;
 
-                  return (
-                    <tr key={token} className="hover:bg-gray-50">
-                      <td className="border border-gray-200 px-4 py-3">
-                        <div className="flex items-center space-x-2">
-                          <Badge variant="outline" className="font-semibold">{token}</Badge>
+                return (
+                  <TableRow key={token}>
+                    <TableCell>
+                      <Badge variant="outline" className="font-semibold">{token}</Badge>
+                    </TableCell>
+                    <TableCell className="font-mono">
+                      {tokenAmount.toFixed(6)}
+                    </TableCell>
+                    <TableCell className="font-mono">
+                      {formatCurrency(entryPrice)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-mono">{formatCurrency(currentPrice)}</span>
+                        <span className={`text-xs ${change24h >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatPercentage(change24h)}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono">
+                      {formatCurrency(currentValue)}
+                    </TableCell>
+                    <TableCell className="font-mono">
+                      {formatCurrency(avgCost)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className={`font-mono ${pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(pnl)}
+                        </span>
+                        <span className={`text-xs ${pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatPercentage(pnlPercentage)}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium">{details.percentage.toFixed(1)}%</span>
+                        <div className="w-12 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-blue-500 rounded-full"
+                            style={{ width: `${Math.min(details.percentage, 100)}%` }}
+                          />
                         </div>
-                      </td>
-                      <td className="border border-gray-200 px-4 py-3 text-sm font-mono">
-                        {tokenAmount.toFixed(6)}
-                      </td>
-                      <td className="border border-gray-200 px-4 py-3 text-sm font-mono">
-                        {formatCurrency(entryPrice)}
-                      </td>
-                      <td className="border border-gray-200 px-4 py-3">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-mono">{formatCurrency(currentPrice)}</span>
-                          <span className={`text-xs ${change24h >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {formatPercentage(change24h)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="border border-gray-200 px-4 py-3 text-sm font-mono">
-                        {formatCurrency(currentValue)}
-                      </td>
-                      <td className="border border-gray-200 px-4 py-3 text-sm font-mono">
-                        {formatCurrency(avgCost)}
-                      </td>
-                      <td className="border border-gray-200 px-4 py-3">
-                        <div className="flex flex-col">
-                          <span className={`text-sm font-mono ${pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {formatCurrency(pnl)}
-                          </span>
-                          <span className={`text-xs ${pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {formatPercentage(pnlPercentage)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="border border-gray-200 px-4 py-3">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm font-medium">{details.percentage.toFixed(1)}%</span>
-                          <div className="w-12 h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-blue-500 rounded-full"
-                              style={{ width: `${Math.min(details.percentage, 100)}%` }}
-                            />
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot>
-                <tr className="bg-gray-100 font-semibold">
-                  <td className="border border-gray-200 px-4 py-3">TOTAL</td>
-                  <td className="border border-gray-200 px-4 py-3">-</td>
-                  <td className="border border-gray-200 px-4 py-3">-</td>
-                  <td className="border border-gray-200 px-4 py-3">-</td>
-                  <td className="border border-gray-200 px-4 py-3 font-mono">
-                    {formatCurrency(portfolioValue)}
-                  </td>
-                  <td className="border border-gray-200 px-4 py-3">-</td>
-                  <td className="border border-gray-200 px-4 py-3">
-                    <span className={`font-mono ${portfolioValue - portfolioData.capital >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(portfolioValue - portfolioData.capital)}
-                    </span>
-                  </td>
-                  <td className="border border-gray-200 px-4 py-3">100%</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+            <TableFooter>
+              <TableRow>
+                <TableCell className="font-semibold">TOTAL</TableCell>
+                <TableCell>-</TableCell>
+                <TableCell>-</TableCell>
+                <TableCell>-</TableCell>
+                <TableCell className="font-mono font-semibold">
+                  {formatCurrency(portfolioValue)}
+                </TableCell>
+                <TableCell>-</TableCell>
+                <TableCell>
+                  <span className={`font-mono font-semibold ${portfolioValue - portfolioData.capital >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatCurrency(portfolioValue - portfolioData.capital)}
+                  </span>
+                </TableCell>
+                <TableCell className="font-semibold">100%</TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
+
+          {error && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800 text-sm">
+                Error fetching live prices: {error}. Showing fallback data.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
