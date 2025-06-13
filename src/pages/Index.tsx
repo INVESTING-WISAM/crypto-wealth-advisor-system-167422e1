@@ -27,6 +27,7 @@ const Index = () => {
   const [portfolioData, setPortfolioData] = useState(null);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [userPlan, setUserPlan] = useState<'basic' | 'professional' | 'enterprise'>('basic');
+  const [activeService, setActiveService] = useState<string | null>(null);
   const { connection, isConnected } = useExchangeConnection();
 
   const handlePortfolioUpdate = (data: any) => {
@@ -45,6 +46,11 @@ const Index = () => {
     setCurrentUser(null);
     setPortfolioData(null);
     setUserPlan('basic');
+    setActiveService(null);
+  };
+
+  const handleServiceAccess = (service: string) => {
+    setActiveService(service);
   };
 
   return (
@@ -269,7 +275,7 @@ const Index = () => {
                 <Card className="border border-gray-200 bg-white">
                   <CardHeader className="text-center">
                     <CardTitle className="text-2xl text-gray-900">Basic</CardTitle>
-                    <div className="text-4xl font-bold text-gray-900">Free</div>
+                    <div className="text-4xl font-bold text-gray-900">$0.00</div>
                     <p className="text-gray-600">per month</p>
                   </CardHeader>
                   <CardContent>
@@ -416,90 +422,124 @@ const Index = () => {
                 Access your personalized crypto portfolio management dashboard with real-time insights and analytics.
               </p>
               
-              {/* Service Access Buttons Based on Plan */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-6xl mx-auto mb-8">
+              {/* Service Access Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-8">
+                {/* Portfolio Calculator Service */}
                 <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300">
                   <CardHeader className="text-center pb-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                      <BarChart3 className="w-6 h-6 text-blue-600" />
+                    <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                      <BarChart3 className="w-8 h-8 text-blue-600" />
                     </div>
-                    <CardTitle className="text-lg text-gray-900">Portfolio Calculator</CardTitle>
+                    <CardTitle className="text-xl text-gray-900">Portfolio Calculator</CardTitle>
+                    <CardDescription>Calculate and optimize your crypto portfolio allocation</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                    <Button 
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg mb-4"
+                      onClick={() => handleServiceAccess('portfolio')}
+                    >
                       Access Now
                     </Button>
+                    <div className="text-sm text-gray-600">
+                      Available on: <span className="font-medium">All Plans</span>
+                    </div>
                   </CardContent>
                 </Card>
 
-                {(userPlan === 'professional' || userPlan === 'enterprise') && (
-                  <Link to="/signals">
-                    <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300 cursor-pointer h-full">
-                      <CardHeader className="text-center pb-4">
-                        <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                          <Zap className="w-6 h-6 text-green-600" />
-                        </div>
-                        <CardTitle className="text-lg text-gray-900">Trading Signals</CardTitle>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <Button className="w-full bg-green-600 hover:bg-green-700 text-white rounded-lg">
-                          View Signals
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                )}
+                {/* Exchanges Service */}
+                <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300">
+                  <CardHeader className="text-center pb-4">
+                    <div className="w-16 h-16 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                      <Globe className="w-8 h-8 text-orange-600" />
+                    </div>
+                    <CardTitle className="text-xl text-gray-900">Exchanges</CardTitle>
+                    <CardDescription>Connect and manage multiple cryptocurrency exchanges</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <Link to="/connect-exchange">
+                      <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white rounded-lg mb-4">
+                        Connect Exchange
+                      </Button>
+                    </Link>
+                    <div className="text-sm text-gray-600">
+                      Available on: <span className="font-medium">All Plans</span>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                {userPlan === 'enterprise' && (
+                {/* Trading Signals Service */}
+                {(userPlan === 'professional' || userPlan === 'enterprise') && (
                   <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300">
                     <CardHeader className="text-center pb-4">
-                      <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                        <Wallet className="w-6 h-6 text-purple-600" />
+                      <div className="w-16 h-16 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <Zap className="w-8 h-8 text-green-600" />
                       </div>
-                      <CardTitle className="text-lg text-gray-900">Trading Wallet</CardTitle>
+                      <CardTitle className="text-xl text-gray-900">Trading Signals</CardTitle>
+                      <CardDescription>Professional trading signals and market analysis</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-lg">
-                        Access Trading
-                      </Button>
+                      <Link to="/signals">
+                        <Button className="w-full bg-green-600 hover:bg-green-700 text-white rounded-lg mb-4">
+                          View Signals
+                        </Button>
+                      </Link>
+                      <div className="text-sm text-gray-600">
+                        Available on: <span className="font-medium">Professional & Enterprise</span>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
 
-                <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300">
-                  <CardHeader className="text-center pb-4">
-                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                      <Globe className="w-6 h-6 text-orange-600" />
-                    </div>
-                    <CardTitle className="text-lg text-gray-900">Exchanges</CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white rounded-lg">
-                      Connect Exchange
-                    </Button>
-                  </CardContent>
-                </Card>
+                {/* Trading Wallet Service */}
+                {userPlan === 'enterprise' && (
+                  <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300">
+                    <CardHeader className="text-center pb-4">
+                      <div className="w-16 h-16 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <Wallet className="w-8 h-8 text-purple-600" />
+                      </div>
+                      <CardTitle className="text-xl text-gray-900">Trading Wallet</CardTitle>
+                      <CardDescription>Advanced trading tools and wallet management</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <Button 
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-lg mb-4"
+                        onClick={() => handleServiceAccess('trading')}
+                      >
+                        Access Trading
+                      </Button>
+                      <div className="text-sm text-gray-600">
+                        Available on: <span className="font-medium">Enterprise Only</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
-
-              {/* Portfolio Calculator Card */}
-              <Card className="max-w-4xl mx-auto bg-white shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-2xl text-gray-900">Portfolio Calculator</CardTitle>
-                  <CardDescription>Calculate and track your cryptocurrency portfolio performance</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <PortfolioCalculator 
-                    onPortfolioUpdate={handlePortfolioUpdate}
-                    currentUser={currentUser}
-                  />
-                </CardContent>
-              </Card>
             </div>
           </section>
 
-          {/* Portfolio Display */}
-          {portfolioData && (
+          {/* Active Service Content */}
+          {activeService === 'portfolio' && (
             <section className="py-12 bg-gray-50">
+              <div className="container mx-auto px-4">
+                <Card className="max-w-4xl mx-auto bg-white shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-2xl text-gray-900">Portfolio Calculator</CardTitle>
+                    <CardDescription>Calculate and track your cryptocurrency portfolio performance</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <PortfolioCalculator 
+                      onPortfolioUpdate={handlePortfolioUpdate}
+                      currentUser={currentUser}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            </section>
+          )}
+
+          {/* Portfolio Display */}
+          {portfolioData && activeService === 'portfolio' && (
+            <section className="py-12 bg-white">
               <div className="container mx-auto px-4">
                 <Card className="max-w-6xl mx-auto bg-white shadow-lg">
                   <CardHeader>
@@ -514,7 +554,7 @@ const Index = () => {
           )}
 
           {/* Trading Wallet Section - Enterprise Only */}
-          {userPlan === 'enterprise' && (
+          {userPlan === 'enterprise' && activeService === 'trading' && (
             <section className="py-12 bg-white">
               <div className="container mx-auto px-4">
                 <Card className="max-w-6xl mx-auto bg-white shadow-lg">
