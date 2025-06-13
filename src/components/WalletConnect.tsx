@@ -13,13 +13,8 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ currentUser }) => {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleConnect = () => {
-    // Close any existing modals first
-    setIsModalOpen(false);
-    
-    // Find MetaMask connector or use the first available
     const connector = connectors.find(c => c.name === 'MetaMask') || connectors[0];
     if (connector) {
       connect({ connector });
@@ -27,43 +22,29 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ currentUser }) => {
   };
 
   const handleDisconnect = () => {
-    setIsModalOpen(false);
     disconnect();
   };
 
-  // Force close any open modals
-  React.useEffect(() => {
-    setIsModalOpen(false);
-    
-    // Close any web3modal that might be open
-    const closeModal = () => {
-      const modal = document.querySelector('w3m-modal');
-      if (modal) {
-        modal.remove();
-      }
-      
-      // Also try to close any backdrop/overlay
-      const overlays = document.querySelectorAll('[data-testid="modal-backdrop"], .w3m-backdrop, .w3m-overlay');
-      overlays.forEach(overlay => overlay.remove());
-    };
-    
-    closeModal();
-  }, []);
-
   if (isConnected && address) {
     return (
-      <div className="flex items-center space-x-2">
-        <Badge variant="secondary" className="bg-green-100 text-green-800">
-          {address.slice(0, 6)}...{address.slice(-4)}
-        </Badge>
+      <div className="flex items-center space-x-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm">
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+            <Wallet className="w-4 h-4 text-green-600" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-gray-900">Connected</span>
+            <span className="text-xs text-gray-500">{address.slice(0, 6)}...{address.slice(-4)}</span>
+          </div>
+        </div>
         <Button 
           variant="outline" 
           size="sm" 
           onClick={handleDisconnect}
-          className="flex items-center space-x-1"
+          className="text-gray-600 hover:text-gray-900 border-gray-200"
         >
-          <LogOut className="w-4 h-4" />
-          <span>Disconnect</span>
+          <LogOut className="w-4 h-4 mr-1" />
+          Disconnect
         </Button>
       </div>
     );
@@ -72,11 +53,11 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ currentUser }) => {
   return (
     <Button 
       onClick={handleConnect}
+      className="flex items-center space-x-2 px-6 py-3 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 rounded-lg shadow-sm transition-all duration-200"
       variant="outline"
-      className="flex items-center space-x-2"
     >
-      <Wallet className="w-4 h-4" />
-      <span>Connect Wallet</span>
+      <Wallet className="w-5 h-5" />
+      <span className="font-medium">Connect Wallet</span>
     </Button>
   );
 };

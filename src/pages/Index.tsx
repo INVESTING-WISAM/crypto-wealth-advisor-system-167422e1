@@ -5,6 +5,7 @@ import WalletConnect from "@/components/WalletConnect";
 import UserAuth from "@/components/UserAuth";
 import PortfolioCalculator from "@/components/PortfolioCalculator";
 import PortfolioDisplay from "@/components/PortfolioDisplay";
+import TradingWallet from "@/components/TradingWallet";
 import { Button } from "@/components/ui/button";
 import { useExchangeConnection } from "@/hooks/useExchangeConnection";
 import { Badge } from "@/components/ui/badge";
@@ -18,12 +19,14 @@ import {
   Zap,
   ArrowRight,
   Check,
-  Star
+  Star,
+  Wallet
 } from "lucide-react";
 
 const Index = () => {
   const [portfolioData, setPortfolioData] = useState(null);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [userPlan, setUserPlan] = useState<'basic' | 'professional' | 'enterprise'>('basic');
   const { connection, isConnected } = useExchangeConnection();
 
   const handlePortfolioUpdate = (data: any) => {
@@ -32,11 +35,16 @@ const Index = () => {
 
   const handleLogin = (username: string) => {
     setCurrentUser(username);
+    // For demo purposes, assign plan based on username
+    if (username.includes('pro')) setUserPlan('professional');
+    else if (username.includes('enterprise')) setUserPlan('enterprise');
+    else setUserPlan('basic');
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
     setPortfolioData(null);
+    setUserPlan('basic');
   };
 
   return (
@@ -52,8 +60,8 @@ const Index = () => {
                   alt="Synfinia Trading" 
                   className="w-10 h-10 object-contain"
                 />
-                <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent">
-                  Synfinia Trading
+                <span className="text-xl font-bold text-gray-900">
+                  CryptoSight
                 </span>
               </div>
             </div>
@@ -71,13 +79,13 @@ const Index = () => {
               )}
               {currentUser && (
                 <div className="flex items-center space-x-2">
+                  <Badge variant="outline" className="capitalize">{userPlan}</Badge>
                   <span className="text-sm text-gray-600">Welcome, {currentUser}</span>
                   <Button variant="outline" size="sm" onClick={handleLogout}>
                     Logout
                   </Button>
                 </div>
               )}
-              <WalletConnect currentUser={currentUser || "demo-user"} />
             </div>
           </div>
         </div>
@@ -98,7 +106,7 @@ const Index = () => {
                     Get real-time insights, performance analytics, and professional trading signals.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                    <Button className="px-8 py-3 text-lg bg-gradient-to-r from-blue-600 to-orange-500 hover:from-blue-700 hover:to-orange-600 text-white rounded-lg font-medium">
+                    <Button className="px-8 py-3 text-lg bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
                       Start Free Trial
                     </Button>
                     <Button variant="outline" className="px-8 py-3 text-lg border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">
@@ -261,7 +269,7 @@ const Index = () => {
                 <Card className="border border-gray-200 bg-white">
                   <CardHeader className="text-center">
                     <CardTitle className="text-2xl text-gray-900">Basic</CardTitle>
-                    <div className="text-4xl font-bold text-gray-900">$0</div>
+                    <div className="text-4xl font-bold text-gray-900">Free</div>
                     <p className="text-gray-600">per month</p>
                   </CardHeader>
                   <CardContent>
@@ -286,7 +294,7 @@ const Index = () => {
                   </div>
                   <CardHeader className="text-center">
                     <CardTitle className="text-2xl text-gray-900">Professional</CardTitle>
-                    <div className="text-4xl font-bold text-gray-900">$49</div>
+                    <div className="text-4xl font-bold text-gray-900">$9.99</div>
                     <p className="text-gray-600">per month</p>
                   </CardHeader>
                   <CardContent>
@@ -306,7 +314,7 @@ const Index = () => {
                 <Card className="border border-gray-200 bg-white">
                   <CardHeader className="text-center">
                     <CardTitle className="text-2xl text-gray-900">Enterprise</CardTitle>
-                    <div className="text-4xl font-bold text-gray-900">$149</div>
+                    <div className="text-4xl font-bold text-gray-900">$19.99</div>
                     <p className="text-gray-600">per month</p>
                   </CardHeader>
                   <CardContent>
@@ -314,10 +322,10 @@ const Index = () => {
                       <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />Everything in Professional</li>
                       <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />Premium trading signals</li>
                       <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />AI-powered insights</li>
+                      <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />Trading wallet</li>
                       <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />API access</li>
                       <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />Custom integrations</li>
                       <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />Dedicated support</li>
-                      <li className="flex items-center"><Check className="w-5 h-5 text-green-500 mr-3" />White-label options</li>
                     </ul>
                     <Button variant="outline" className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg">
                       Contact Sales
@@ -329,13 +337,13 @@ const Index = () => {
           </section>
 
           {/* CTA Section */}
-          <section className="py-20 bg-gradient-to-r from-blue-600 to-orange-500">
+          <section className="py-20 bg-blue-600">
             <div className="container mx-auto px-4 text-center">
               <h2 className="text-4xl font-bold text-white mb-6">
                 Ready to take control of your crypto portfolio?
               </h2>
               <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-                Join thousands of investors who trust Synfinia Trading for their portfolio management needs.
+                Join thousands of investors who trust CryptoSight for their portfolio management needs.
               </p>
               <Button className="px-8 py-3 text-lg bg-white text-blue-600 hover:bg-gray-100 rounded-lg font-medium">
                 Start Your Free Trial
@@ -408,6 +416,71 @@ const Index = () => {
                 Access your personalized crypto portfolio management dashboard with real-time insights and analytics.
               </p>
               
+              {/* Service Access Buttons Based on Plan */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-6xl mx-auto mb-8">
+                <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300">
+                  <CardHeader className="text-center pb-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <BarChart3 className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <CardTitle className="text-lg text-gray-900">Portfolio Calculator</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                      Access Now
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {(userPlan === 'professional' || userPlan === 'enterprise') && (
+                  <Link to="/signals">
+                    <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300 cursor-pointer h-full">
+                      <CardHeader className="text-center pb-4">
+                        <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                          <Zap className="w-6 h-6 text-green-600" />
+                        </div>
+                        <CardTitle className="text-lg text-gray-900">Trading Signals</CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <Button className="w-full bg-green-600 hover:bg-green-700 text-white rounded-lg">
+                          View Signals
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )}
+
+                {userPlan === 'enterprise' && (
+                  <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300">
+                    <CardHeader className="text-center pb-4">
+                      <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                        <Wallet className="w-6 h-6 text-purple-600" />
+                      </div>
+                      <CardTitle className="text-lg text-gray-900">Trading Wallet</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-lg">
+                        Access Trading
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300">
+                  <CardHeader className="text-center pb-4">
+                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <Globe className="w-6 h-6 text-orange-600" />
+                    </div>
+                    <CardTitle className="text-lg text-gray-900">Exchanges</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white rounded-lg">
+                      Connect Exchange
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+
               {/* Portfolio Calculator Card */}
               <Card className="max-w-4xl mx-auto bg-white shadow-lg">
                 <CardHeader>
@@ -440,57 +513,34 @@ const Index = () => {
             </section>
           )}
 
-          {/* Quick Access Navigation */}
-          <section className="py-12 bg-white">
-            <div className="container mx-auto px-4">
-              <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Your Dashboard</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-                <Link to="/signals">
-                  <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300 cursor-pointer">
-                    <CardHeader className="text-center">
-                      <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                        <Zap className="w-6 h-6 text-green-600" />
+          {/* Trading Wallet Section - Enterprise Only */}
+          {userPlan === 'enterprise' && (
+            <section className="py-12 bg-white">
+              <div className="container mx-auto px-4">
+                <Card className="max-w-6xl mx-auto bg-white shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-2xl text-gray-900 flex items-center">
+                      <Wallet className="w-6 h-6 mr-2" />
+                      Trading Wallet & Centralized Connection
+                    </CardTitle>
+                    <CardDescription>
+                      Connect your centralized wallet and manage trading positions
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Wallet Connection</h3>
+                        <WalletConnect currentUser={currentUser} />
                       </div>
-                      <CardTitle className="text-xl text-gray-900">Trading Signals</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-600 text-center">
-                        Access professional trading signals and market analysis
-                      </p>
-                    </CardContent>
-                  </Card>
-                </Link>
-
-                <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300">
-                  <CardHeader className="text-center">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                      <BarChart3 className="w-6 h-6 text-blue-600" />
+                      <p className="text-gray-600">Connect your centralized or cold wallet to access trading features</p>
                     </div>
-                    <CardTitle className="text-xl text-gray-900">Analytics</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-600 text-center">
-                      View detailed portfolio analytics and performance metrics
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300">
-                  <CardHeader className="text-center">
-                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                      <Globe className="w-6 h-6 text-orange-600" />
-                    </div>
-                    <CardTitle className="text-xl text-gray-900">Exchanges</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-600 text-center">
-                      Connect and manage your cryptocurrency exchange accounts
-                    </p>
+                    <TradingWallet portfolioData={portfolioData} currentUser={currentUser} />
                   </CardContent>
                 </Card>
               </div>
-            </div>
-          </section>
+            </section>
+          )}
         </>
       )}
     </div>
