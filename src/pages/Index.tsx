@@ -17,9 +17,9 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-800">
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-800 relative overflow-x-hidden">
       {/* Navigation Bar */}
-      <nav className="bg-white/10 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
+      <nav className="bg-white/10 backdrop-blur-md border-b border-white/20 sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -48,7 +48,7 @@ const Index = () => {
         </div>
       </nav>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 relative z-10 max-w-7xl">
         <header className="text-center mb-12">
           <h2 className="text-4xl md:text-6xl font-bold text-white mb-4">
             Advanced Cryptocurrency Portfolio Management System
@@ -89,17 +89,17 @@ const Index = () => {
         {/* Navigation Tabs */}
         <div className="flex justify-center mb-8">
           <div className="bg-white/10 backdrop-blur-md rounded-full p-2 border border-white/20">
-            <div className="flex space-x-2">
-              <Button className="bg-purple-600 text-white rounded-full px-6 py-2">Calculator</Button>
-              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2">Portfolio</Button>
-              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2">Tracker</Button>
-              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2">Trading</Button>
-              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2">Wallets</Button>
-              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2">Education</Button>
+            <div className="flex space-x-2 overflow-x-auto">
+              <Button className="bg-purple-600 text-white rounded-full px-6 py-2 whitespace-nowrap">Calculator</Button>
+              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2 whitespace-nowrap">Portfolio</Button>
+              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2 whitespace-nowrap">Tracker</Button>
+              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2 whitespace-nowrap">Trading</Button>
+              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2 whitespace-nowrap">Wallets</Button>
+              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2 whitespace-nowrap">Education</Button>
               <Link to="/signals">
-                <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2">Signals</Button>
+                <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2 whitespace-nowrap">Signals</Button>
               </Link>
-              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2">Alerts</Button>
+              <Button variant="ghost" className="text-white hover:bg-white/20 rounded-full px-6 py-2 whitespace-nowrap">Alerts</Button>
             </div>
           </div>
         </div>
@@ -242,7 +242,7 @@ const Index = () => {
         </section>
 
         {/* Additional Feature Cards */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-12">
           <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition-all duration-300">
             <h2 className="text-2xl font-semibold text-white mb-4">
               Wallet Balances
