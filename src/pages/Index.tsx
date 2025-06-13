@@ -28,7 +28,7 @@ const Index = () => {
                 className="h-10 w-auto"
               />
               <h1 className="text-2xl font-bold text-white">
-                Portfolio Tracker
+                Synfinia Trading Platform
               </h1>
             </div>
             <div className="flex items-center space-x-4">
@@ -76,7 +76,142 @@ const Index = () => {
           </div>
         )}
 
-        {/* Feature Cards */}
+        {/* Main Feature Sections */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
+          {/* Investment Planning */}
+          <div className="card-enhanced glass-effect bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 hover:bg-white/15 transition-all duration-300">
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4">
+                <span className="text-2xl">📊</span>
+              </div>
+              <h2 className="text-2xl font-semibold text-white">Investment Planning</h2>
+            </div>
+            <p className="text-white/70 mb-6">
+              Create personalized investment strategies based on your risk tolerance and financial goals.
+            </p>
+            <ul className="text-white/60 space-y-2 text-sm mb-6">
+              <li>• Risk assessment tools</li>
+              <li>• Goal-based planning</li>
+              <li>• Asset allocation strategies</li>
+              <li>• Performance tracking</li>
+            </ul>
+            <Button className="w-full bg-white/20 hover:bg-white/30 text-white border-white/30">
+              Start Planning
+            </Button>
+          </div>
+
+          {/* Trading Wallet */}
+          <div className="card-enhanced glass-effect bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 hover:bg-white/15 transition-all duration-300">
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-600 rounded-xl flex items-center justify-center mr-4">
+                <span className="text-2xl">💼</span>
+              </div>
+              <h2 className="text-2xl font-semibold text-white">Trading Wallet</h2>
+            </div>
+            <p className="text-white/70 mb-6">
+              Secure wallet integration for seamless trading across multiple exchanges and platforms.
+            </p>
+            <ul className="text-white/60 space-y-2 text-sm mb-6">
+              <li>• Multi-wallet support</li>
+              <li>• Real-time balances</li>
+              <li>• Transaction history</li>
+              <li>• Security features</li>
+            </ul>
+            <Button className="w-full bg-white/20 hover:bg-white/30 text-white border-white/30">
+              Connect Wallet
+            </Button>
+          </div>
+
+          {/* Signals Channel */}
+          <div className="card-enhanced glass-effect bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 hover:bg-white/15 transition-all duration-300">
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl flex items-center justify-center mr-4">
+                <span className="text-2xl">📡</span>
+              </div>
+              <h2 className="text-2xl font-semibold text-white">Trading Signals</h2>
+            </div>
+            <p className="text-white/70 mb-6">
+              Professional trading signals and market analysis from expert traders and AI algorithms.
+            </p>
+            <ul className="text-white/60 space-y-2 text-sm mb-6">
+              <li>• Real-time signals</li>
+              <li>• Technical analysis</li>
+              <li>• Risk management</li>
+              <li>• Performance metrics</li>
+            </ul>
+            <Button className="w-full bg-white/20 hover:bg-white/30 text-white border-white/30">
+              View Signals
+            </Button>
+          </div>
+
+          {/* Content Creator */}
+          <div className="card-enhanced glass-effect bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 hover:bg-white/15 transition-all duration-300">
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-600 rounded-xl flex items-center justify-center mr-4">
+                <span className="text-2xl">🎨</span>
+              </div>
+              <h2 className="text-2xl font-semibold text-white">Content Creator</h2>
+            </div>
+            <p className="text-white/70 mb-6">
+              Create and share trading content, educational materials, and market insights with the community.
+            </p>
+            <ul className="text-white/60 space-y-2 text-sm mb-6">
+              <li>• Content creation tools</li>
+              <li>• Community sharing</li>
+              <li>• Educational resources</li>
+              <li>• Monetization options</li>
+            </ul>
+            <Button className="w-full bg-white/20 hover:bg-white/30 text-white border-white/30">
+              Create Content
+            </Button>
+          </div>
+
+          {/* Category Manager */}
+          <div className="card-enhanced glass-effect bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 hover:bg-white/15 transition-all duration-300">
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 bg-gradient-to-r from-teal-500 to-blue-600 rounded-xl flex items-center justify-center mr-4">
+                <span className="text-2xl">📂</span>
+              </div>
+              <h2 className="text-2xl font-semibold text-white">Category Manager</h2>
+            </div>
+            <p className="text-white/70 mb-6">
+              Organize and manage your trading strategies, portfolios, and investments by custom categories.
+            </p>
+            <ul className="text-white/60 space-y-2 text-sm mb-6">
+              <li>• Custom categories</li>
+              <li>• Portfolio organization</li>
+              <li>• Strategy grouping</li>
+              <li>• Performance comparison</li>
+            </ul>
+            <Button className="w-full bg-white/20 hover:bg-white/30 text-white border-white/30">
+              Manage Categories
+            </Button>
+          </div>
+
+          {/* Investment Tracker */}
+          <div className="card-enhanced glass-effect bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 hover:bg-white/15 transition-all duration-300">
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center mr-4">
+                <span className="text-2xl">📈</span>
+              </div>
+              <h2 className="text-2xl font-semibold text-white">Investment Tracker</h2>
+            </div>
+            <p className="text-white/70 mb-6">
+              Track your investments across all platforms with detailed analytics and performance insights.
+            </p>
+            <ul className="text-white/60 space-y-2 text-sm mb-6">
+              <li>• Multi-platform tracking</li>
+              <li>• Performance analytics</li>
+              <li>• Profit/loss calculations</li>
+              <li>• Tax reporting</li>
+            </ul>
+            <Button className="w-full bg-white/20 hover:bg-white/30 text-white border-white/30">
+              Track Investments
+            </Button>
+          </div>
+        </section>
+
+        {/* Additional Feature Cards */}
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="card-enhanced glass-effect bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 hover:bg-white/15 transition-all duration-300">
             <h2 className="text-2xl font-semibold text-white mb-4">
