@@ -228,56 +228,74 @@ const Index = () => {
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">
               Wallet Balances
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 mb-4">
               View your combined wallet balances across different chains.
             </p>
+            <Button className="w-full" variant="outline">
+              View Balances
+            </Button>
           </div>
 
           <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">
               Exchange Balances
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 mb-4">
               See your balances on connected exchanges like Binance, Coinbase,
               and Kraken.
             </p>
+            <Button className="w-full" variant="outline">
+              Connect Exchange
+            </Button>
           </div>
 
           <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">
               Portfolio Allocation
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 mb-4">
               Analyze your portfolio allocation by asset and platform.
             </p>
+            <Button className="w-full" variant="outline">
+              Analyze Portfolio
+            </Button>
           </div>
 
           <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">
               Transaction History
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 mb-4">
               Review your transaction history across all connected accounts.
             </p>
+            <Button className="w-full" variant="outline">
+              View History
+            </Button>
           </div>
 
           <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">
               Performance Metrics
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 mb-4">
               Track your portfolio's performance over time with detailed
               metrics.
             </p>
+            <Button className="w-full" variant="outline">
+              View Metrics
+            </Button>
           </div>
 
           <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">
               Alerts and Notifications
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 mb-4">
               Set up custom alerts for price movements and portfolio changes.
             </p>
+            <Button className="w-full" variant="outline">
+              Setup Alerts
+            </Button>
           </div>
         </section>
       </div>
