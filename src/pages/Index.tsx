@@ -80,13 +80,13 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          {/* Investment Tracker - Premium & Enterprise */}
-          {(userPlan === 'premium' || userPlan === 'enterprise') && (
+          {/* Investment Tracker - Professional & Enterprise */}
+          {(userPlan === 'professional' || userPlan === 'enterprise') && (
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>Investment Tracker</span>
-                  <Badge variant="outline">Premium+</Badge>
+                  <Badge variant="outline">Professional+</Badge>
                 </CardTitle>
                 <CardDescription>
                   Track your investments with profit alerts and capital withdrawal management
@@ -203,7 +203,7 @@ const Index = () => {
               <div className="text-center">
                 <h3 className="text-lg font-semibold mb-2">Unlock More Features</h3>
                 <p className="text-gray-600 mb-4">
-                  Upgrade to {userPlan === 'free' ? 'Premium or Enterprise' : 'Enterprise'} to access additional trading tools and services
+                  Upgrade to {userPlan === 'basic' ? 'Professional or Enterprise' : 'Enterprise'} to access additional trading tools and services
                 </p>
                 <Button onClick={() => setActiveSection('auth')}>
                   View Plans
